@@ -2,6 +2,7 @@
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/constants/demo_config.dart';
 import '../../core/providers/supabase_provider.dart';
 import '../controllers/shop_controller.dart';
 import '../models/cart_item.dart';
@@ -11,10 +12,9 @@ import '../repository/supabase_shop_repository.dart';
 
 // ── Repository ────────────────────────────────────────────────────────────────
 
-/// Production Supabase product repository.
-/// Override with [MockProductRepository] in tests or offline dev:
-///   productRepositoryProvider.overrideWithValue(MockProductRepository())
+/// Uses [MockProductRepository] in demo mode, Supabase otherwise.
 final productRepositoryProvider = Provider<IProductRepository>((ref) {
+  if (DemoConfig.demoMode) return MockProductRepository();
   return SupabaseShopRepository(ref.watch(supabaseClientProvider));
 });
 

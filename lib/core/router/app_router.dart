@@ -473,7 +473,7 @@ class _SplashPage extends StatelessWidget {
             ),
             const SizedBox(height: 24),
             const Text(
-              'Divine Pooja',
+              'Saral Pooja',
               style: TextStyle(
                 fontSize: 28,
                 fontWeight: FontWeight.bold,

@@ -106,6 +106,7 @@ final kMockPandits = [
     isOnline: true,
     experienceYears: 12,
     languagesSpoken: ['Hindi', 'English'],
+    avatarUrl: 'assets/images/image12.jpg',
     bio:
         'Expert in Vastu Shastra and Vedic astrology with 12+ years of practice. '
         'Specialises in home and office Vastu corrections and birth chart analysis.',
@@ -124,6 +125,7 @@ final kMockPandits = [
     isOnline: false,
     experienceYears: 8,
     languagesSpoken: ['Hindi', 'Gujarati'],
+    avatarUrl: 'assets/images/image13.jpg',
     bio:
         'Kundali expert and numerologist. Offers insights on marriage compatibility, '
         'career guidance, and lucky number analysis.',
@@ -142,6 +144,7 @@ final kMockPandits = [
     isOnline: true,
     experienceYears: 10,
     languagesSpoken: ['Hindi', 'English', 'Sanskrit'],
+    avatarUrl: 'assets/images/image14.jpg',
     bio:
         'Spiritual counsellor and meditation guide. Helps with emotional healing, '
         'chakra balancing, and life path clarity.',
@@ -160,6 +163,7 @@ final kMockPandits = [
     isOnline: true,
     experienceYears: 6,
     languagesSpoken: ['Hindi', 'Sanskrit'],
+    avatarUrl: 'assets/images/image12.jpg',
     bio:
         'Expert in Vedic pujas and rituals. Can guide you through sankalp, '
         'havan procedure, and auspicious muhurtas.',

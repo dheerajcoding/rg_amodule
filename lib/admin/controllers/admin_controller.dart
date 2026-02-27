@@ -4,6 +4,7 @@
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../booking/models/booking_status.dart';
+import '../../core/constants/demo_config.dart';
 import '../models/admin_models.dart';
 import '../repository/admin_repository.dart';
 
@@ -78,6 +79,10 @@ class AdminController extends StateNotifier<AdminState> {
   }
 
   Future<void> deletePooja(String id) async {
+    if (DemoConfig.demoMode) {
+      state = state.copyWith(error: 'Delete is disabled in demo mode.');
+      return;
+    }
     _setSectionLoading(AdminSection.poojas, true);
     try {
       await _repo.deletePooja(id);
@@ -188,6 +193,11 @@ class AdminController extends StateNotifier<AdminState> {
   // ── Consultations ─────────────────────────────────────────────────────────
 
   Future<void> endSession(String id) async {
+    if (DemoConfig.demoMode) {
+      state = state.copyWith(
+          error: 'End session is disabled in demo mode.');
+      return;
+    }
     try {
       await _repo.endSession(id);
       final refreshed = await _repo.fetchConsultations();
@@ -198,6 +208,11 @@ class AdminController extends StateNotifier<AdminState> {
   }
 
   Future<void> refundOverride(String id) async {
+    if (DemoConfig.demoMode) {
+      state = state.copyWith(
+          error: 'Refund override is disabled in demo mode.');
+      return;
+    }
     try {
       final updated = await _repo.refundOverride(id);
       state = state.copyWith(

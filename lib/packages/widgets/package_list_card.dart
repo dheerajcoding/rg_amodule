@@ -193,12 +193,23 @@ class _ImageBanner extends StatelessWidget {
         _gradients[package.category] ?? _gradients[PackageCategory.other]!;
 
     if (package.imageUrl != null) {
-      return Image.network(
-        package.imageUrl!,
-        height: 140,
-        width: double.infinity,
-        fit: BoxFit.cover,
-        errorBuilder: (_, _, _) => _gradient(colors),
+      final isLocal = package.imageUrl!.startsWith('assets/');
+      return ClipRRect(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+        child: isLocal
+            ? Image.asset(
+                package.imageUrl!,
+                height: 140,
+                width: double.infinity,
+                fit: BoxFit.cover,
+              )
+            : Image.network(
+                package.imageUrl!,
+                height: 140,
+                width: double.infinity,
+                fit: BoxFit.cover,
+                errorBuilder: (_, _, _) => _gradient(colors),
+              ),
       );
     }
     return _gradient(colors);

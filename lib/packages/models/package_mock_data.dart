@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/constants/app_images.dart';
 import 'package_model.dart';
 
 // ── Reviews ───────────────────────────────────────────────────────────────────
@@ -72,6 +73,7 @@ final List<PackageModel> kMockPackageList = [
     panditName: 'Acharya Sunil Joshi',
     rating: 4.7, reviewCount: 185, bookingCount: 870,
     isPopular: true,
+    imageUrl: AppImages.consultation,
     includes: [
       'Video call with certified Jyotish Acharya',
       'Complete birth chart (Kundali) analysis',
@@ -93,6 +95,7 @@ final List<PackageModel> kMockPackageList = [
     panditName: 'Pt. Kavita Mishra',
     rating: 4.8, reviewCount: 240, bookingCount: 650,
     isFeatured: true,
+    imageUrl: AppImages.poojaGanpati,
     includes: [
       'Two pandits for 3 hours',
       'Full havan samagri (kund, ghee, herbs)',
@@ -117,6 +120,7 @@ final List<PackageModel> kMockPackageList = [
     panditName: 'Swami Prakash Das',
     rating: 5.0, reviewCount: 98, bookingCount: 310,
     isPopular: true, isFeatured: true,
+    imageUrl: AppImages.poojaNavgraha,
     includes: [
       'Expert pandit with 20+ years experience',
       '9-kund havan setup',
@@ -139,6 +143,7 @@ final List<PackageModel> kMockPackageList = [
     category: PackageCategory.vastu,
     panditName: 'Acharya Sunil Joshi',
     rating: 4.6, reviewCount: 152, bookingCount: 420,
+    imageUrl: AppImages.poojaLakshmi,
     includes: [
       'On-site visit (upto 3 BHK)',
       'Directional & 16-zone analysis',
@@ -161,6 +166,7 @@ final List<PackageModel> kMockPackageList = [
     panditName: 'Pt. Ashok Trivedi',
     rating: 4.8, reviewCount: 410, bookingCount: 1850,
     isPopular: true,
+    imageUrl: AppImages.poojaSatyanarayan,
     includes: [
       'Full Sunderkand recitation (Hindi + Sanskrit)',
       'Hanuman ji puja & aarti',
@@ -181,6 +187,7 @@ final List<PackageModel> kMockPackageList = [
     category: PackageCategory.remedies,
     panditName: 'Pt. Ramesh Sharma',
     rating: 4.5, reviewCount: 88, bookingCount: 260,
+    imageUrl: AppImages.poojaGanpati,
     includes: [
       'Kundali-based Mangal Dosha assessment',
       'Mangal yantra energisation (dispatched)',
@@ -203,6 +210,7 @@ final List<PackageModel> kMockPackageList = [
     panditName: 'Pt. Ashok Trivedi',
     rating: 4.3, reviewCount: 520, bookingCount: 2100,
     isPopular: true,
+    imageUrl: AppImages.consultation,
     includes: [
       '4 weekly 30-min video calls (1 month)',
       'Daily written predictions (WhatsApp/email)',

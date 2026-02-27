@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/constants/demo_config.dart';
 import '../../core/providers/supabase_provider.dart';
 import '../models/package_filter.dart';
 import '../models/package_mock_data.dart';
@@ -9,19 +10,43 @@ import '../repository/supabase_package_repository.dart';
 // ── Page size ─────────────────────────────────────────────────────────────────
 const kPackagePageSize = 5;
 
+// ── Mock Package Repository (for demo mode) ──────────────────────────────────
+
+class _MockPackageRepository implements IPackageRepository {
+  @override
+  Future<List<PackageModel>> fetchPackages({
+    PackageFilter? filter,
+    int page = 0,
+    int pageSize = kPackagePageSize,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    return kMockPackageList;
+  }
+
+  @override
+  Future<PackageModel> fetchPackageById(String id) async {
+    await Future.delayed(const Duration(milliseconds: 200));
+    return kMockPackageList.firstWhere((p) => p.id == id);
+  }
+
+  @override
+  Future<List<PackageModel>> fetchFeaturedPackages({int limit = 6}) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    return kMockPackageList.where((p) => p.isFeatured || p.isPopular).take(limit).toList();
+  }
+}
+
 // ── Repository Provider ───────────────────────────────────────────────────────
 
-/// Production Supabase package repository.
-/// Override with [MockPackageRepository] in tests:
-///   packageRepositoryProvider.overrideWithValue(MockPackageRepository())
+/// Uses mock in demo mode, Supabase otherwise.
 final packageRepositoryProvider = Provider<IPackageRepository>((ref) {
+  if (DemoConfig.demoMode) return _MockPackageRepository();
   return SupabasePackageRepository(ref.watch(supabaseClientProvider));
 });
 
 // ── Supabase async packages fetch ─────────────────────────────────────────────
 
-/// Async fetch from Supabase with filter applied server-side.
-/// Used for the live packages list tab.
+/// Async fetch with filter applied.
 final packagesFetchProvider =
     FutureProvider.autoDispose<List<PackageModel>>((ref) async {
   final repo = ref.watch(packageRepositoryProvider);

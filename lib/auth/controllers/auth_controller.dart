@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart' as supa;
 import '../models/auth_state.dart';
 import '../models/user_model.dart';
 import '../repository/auth_repository.dart';
+import '../../core/constants/demo_config.dart';
 import '../../models/role_enum.dart';
 
 /// Orchestrates all authentication flows.
@@ -129,8 +130,32 @@ class AuthController extends StateNotifier<AuthState> {
     }
   }
 
+  // ── Demo Login (fully offline) ────────────────────────────────────────────
+  /// Signs in as a demo account without making any Supabase network call.
+  void demoLogin(DemoAccount account) {
+    state = const AuthLoading();
+    final role = UserRole.values.firstWhere(
+      (r) => r.name == account.role,
+      orElse: () => UserRole.user,
+    );
+    final user = UserModel(
+      id: account.mockId,
+      name: account.fullName,
+      email: account.email,
+      role: role,
+      phone: account.phone,
+      createdAt: DateTime.now(),
+    );
+    state = AuthAuthenticated(user);
+  }
+
   // ── Logout ───────────────────────────────────────────────────────────────
   Future<void> logout() async {
+    // In demo mode, skip the Supabase signOut network call entirely.
+    if (DemoConfig.demoMode && DemoConfig.isDemoEmail(currentUser?.email ?? '')) {
+      state = const AuthUnauthenticated();
+      return;
+    }
     try {
       await _repository.signOut();
       // Stream fires [AuthChangeEvent.signedOut] → sets AuthUnauthenticated.

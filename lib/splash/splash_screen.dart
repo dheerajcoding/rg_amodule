@@ -4,7 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../core/theme/app_colors.dart';
 
-/// Premium DivinePooja splash screen.
+/// Premium Saral Pooja splash screen.
 /// Navigated away from automatically via go_router redirect once auth resolves.
 class SplashScreen extends ConsumerWidget {
   const SplashScreen({super.key});
@@ -73,17 +73,19 @@ class SplashScreen extends ConsumerWidget {
                           ),
                         ],
                       ),
-                      child: const Icon(
-                        Icons.auto_awesome,
-                        color: Colors.white,
-                        size: 52,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(28),
+                        child: Image.asset(
+                          'assets/images/image15.png',
+                          fit: BoxFit.cover,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 28),
 
                     // App name — Playfair Display
                     Text(
-                      'DivinePooja',
+                      'Saral Pooja',
                       style: GoogleFonts.playfairDisplay(
                         color: Colors.white,
                         fontSize: 34,

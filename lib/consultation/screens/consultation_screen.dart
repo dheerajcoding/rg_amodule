@@ -180,11 +180,19 @@ class _PanditCard extends StatelessWidget {
                   CircleAvatar(
                     radius: 30,
                     backgroundColor: AppColors.primary.withAlpha(20),
-                    child: Text(pandit.initials,
-                        style: const TextStyle(
-                            color: AppColors.primary,
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold)),
+                    backgroundImage:
+                        pandit.avatarUrl != null &&
+                                pandit.avatarUrl!.startsWith('assets/')
+                            ? AssetImage(pandit.avatarUrl!)
+                            : null,
+                    child: pandit.avatarUrl != null &&
+                            pandit.avatarUrl!.startsWith('assets/')
+                        ? null
+                        : Text(pandit.initials,
+                            style: const TextStyle(
+                                color: AppColors.primary,
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold)),
                   ),
                   if (isOnline)
                     Positioned(

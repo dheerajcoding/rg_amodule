@@ -49,6 +49,7 @@ class MockPandit {
     required this.isOnline,
     this.avatarInitials,
     this.avatarColor,
+    this.imagePath,
   });
 
   final String id;
@@ -60,6 +61,8 @@ class MockPandit {
   final bool isOnline;
   final String? avatarInitials;
   final Color? avatarColor;
+  /// Optional local asset image path, e.g. 'assets/images/image12.jpg'
+  final String? imagePath;
 }
 
 // ── Package Model (mock) ───────────────────────────────────────────────────────

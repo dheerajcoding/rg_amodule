@@ -1,15 +1,18 @@
 // lib/admin/providers/admin_providers.dart
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/constants/demo_config.dart';
 import '../controllers/admin_controller.dart';
 import '../models/admin_models.dart';
 import '../repository/admin_repository.dart';
+import '../repository/mock_admin_repository.dart';
 import '../repository/supabase_admin_repository.dart';
 import '../../core/providers/supabase_provider.dart';
 
 // ── Repository ────────────────────────────────────────────────────────────────
 
 final adminRepositoryProvider = Provider<IAdminRepository>((ref) {
+  if (DemoConfig.demoMode) return MockAdminRepository();
   return SupabaseAdminRepository(ref.watch(supabaseClientProvider));
 });
 

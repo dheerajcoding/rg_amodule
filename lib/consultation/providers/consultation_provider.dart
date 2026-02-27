@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/constants/demo_config.dart';
 import '../../core/providers/supabase_provider.dart';
 import '../controllers/consultation_controller.dart';
 import '../models/consultation_session.dart';
@@ -9,16 +10,15 @@ import '../repository/ws_session_repository.dart';
 
 // ── Repository Providers ──────────────────────────────────────────────────────
 
-/// Production WebSocket + Realtime session repository.
-/// Override with [MockSessionRepository] in tests or offline dev:
-///   overrides: [sessionRepositoryProvider.overrideWithValue(MockSessionRepository())]
+/// Uses mocks in demo mode, Supabase otherwise.
 final sessionRepositoryProvider = Provider<ISessionRepository>((ref) {
+  if (DemoConfig.demoMode) return MockSessionRepository();
   return WsSessionRepository(ref.watch(supabaseClientProvider));
 });
 
-/// Supabase pandit repository.
-/// Override with [MockPanditRepository] for offline development.
+/// Uses mocks in demo mode, Supabase otherwise.
 final panditRepositoryProvider = Provider<IPanditRepository>((ref) {
+  if (DemoConfig.demoMode) return MockPanditRepository();
   return SupabasePanditRepository(ref.watch(supabaseClientProvider));
 });
 

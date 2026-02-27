@@ -302,18 +302,32 @@ class _SpecialPoojaCard extends StatelessWidget {
                 ),
                 child: Stack(
                   children: [
-                    Positioned(
-                      right: -20,
-                      top: -20,
-                      child: Opacity(
-                        opacity: 0.15,
-                        child: Icon(
-                          Icons.temple_hindu,
-                          size: 100,
-                          color: Colors.white,
+                    if (pooja.imageUrl != null &&
+                        pooja.imageUrl!.startsWith('assets/'))
+                      Positioned.fill(
+                        child: ClipRRect(
+                          borderRadius: const BorderRadius.vertical(
+                            top: Radius.circular(16),
+                          ),
+                          child: Image.asset(
+                            pooja.imageUrl!,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                      )
+                    else
+                      Positioned(
+                        right: -20,
+                        top: -20,
+                        child: Opacity(
+                          opacity: 0.15,
+                          child: Icon(
+                            Icons.temple_hindu,
+                            size: 100,
+                            color: Colors.white,
+                          ),
                         ),
                       ),
-                    ),
                     Padding(
                       padding: const EdgeInsets.all(16),
                       child: Column(

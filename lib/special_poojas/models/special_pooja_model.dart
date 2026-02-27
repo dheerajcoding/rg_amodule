@@ -146,6 +146,8 @@ class SpecialPoojaModel extends Equatable {
 
 // ─────────────────────────── Mock seed data ──────────────────────────────────
 
+const _img = 'assets/images';
+
 final kMockSpecialPoojas = [
   SpecialPoojaModel(
     id: 'sp001',
@@ -170,6 +172,7 @@ final kMockSpecialPoojas = [
     price: 5100,
     durationMinutes: 180,
     isActive: true,
+    imageUrl: '$_img/image5.jpg',
     includes: [
       '11 qualified Vedic pandits',
       'All puja samagri included',
@@ -204,6 +207,7 @@ final kMockSpecialPoojas = [
     price: 3600,
     durationMinutes: 120,
     isActive: true,
+    imageUrl: '$_img/image6.jpg',
     includes: [
       '9 separate yagya kunds',
       'All navgraha samagri',
@@ -236,6 +240,7 @@ final kMockSpecialPoojas = [
     price: 7500,
     durationMinutes: 240,
     isActive: true,
+    imageUrl: '$_img/image7.jpg',
     includes: [
       '11,000 mantra chants',
       '1,008 ahutis',
@@ -270,6 +275,7 @@ final kMockSpecialPoojas = [
     price: 4500,
     durationMinutes: 150,
     isActive: true,
+    imageUrl: '$_img/image8.jpg',
     includes: [
       'Lakshmi yantra puja',
       'Kubera stotram chanting',
@@ -297,6 +303,7 @@ final kMockSpecialPoojas = [
     price: 2100,
     durationMinutes: 180,
     isActive: true,
+    imageUrl: '$_img/image5.jpg',
     includes: [
       'All 5 chapters narration',
       'Panchamrit panchopa­char puja',

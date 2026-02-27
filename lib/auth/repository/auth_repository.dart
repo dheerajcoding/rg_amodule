@@ -268,7 +268,7 @@ class AuthRepository {
       return 'Network error. Please check your connection.';
     }
     if (e.statusCode == '500' || msg.contains('500') || msg.contains('internal')) {
-      return 'Server error during sign-up. Please try again in a moment.';
+      return 'Server error. Please check that your Supabase project is active and try again.';
     }
     return e.message;
   }

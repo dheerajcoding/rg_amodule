@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/constants/demo_config.dart';
 import '../../core/providers/supabase_provider.dart';
 import '../controllers/booking_controller.dart';
 import '../models/booking_model.dart';
@@ -8,18 +9,9 @@ import '../../packages/models/package_model.dart';
 
 // ── Repository ────────────────────────────────────────────────────────────────
 
-/// Provides the live [SupabaseBookingRepository] wired to the Supabase client.
-///
-/// To run against the in-memory mock (e.g. during UI development without a
-/// backend), override this provider in `main.dart` or a test:
-///
-/// ```dart
-/// overrides: [
-///   bookingRepositoryProvider
-///       .overrideWithValue(MockBookingRepository()),
-/// ]
-/// ```
+/// Uses [MockBookingRepository] in demo mode, Supabase otherwise.
 final bookingRepositoryProvider = Provider<IBookingRepository>((ref) {
+  if (DemoConfig.demoMode) return MockBookingRepository();
   return SupabaseBookingRepository(ref.watch(supabaseClientProvider));
 });
 

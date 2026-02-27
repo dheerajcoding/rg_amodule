@@ -50,6 +50,7 @@ class ProductModel {
     required this.stock,
     required this.includes,
     this.isBestSeller = false,
+    this.imageAsset,
   });
 
   final String id;
@@ -66,6 +67,9 @@ class ProductModel {
   /// Bullet list of items included in the kit.
   final List<String> includes;
   final bool isBestSeller;
+
+  /// Optional local asset path, e.g. 'assets/images/image9.jpg'.
+  final String? imageAsset;
 
   // ── Computed ──────────────────────────────────────────────────────────────
 
@@ -109,6 +113,7 @@ final kMockProducts = <ProductModel>[
     rating: 4.5,
     reviewCount: 234,
     stock: 50,
+    imageAsset: 'assets/images/image5.jpg',
     includes: [
       'Satyanarayan Katha book',
       'Panchamrit ingredients (milk, curd, honey, sugar, ghee)',
@@ -131,6 +136,7 @@ final kMockProducts = <ProductModel>[
     reviewCount: 189,
     stock: 30,
     isBestSeller: true,
+    imageAsset: 'assets/images/image9.jpg',
     includes: [
       'Satyanarayan Katha book (illustrated)',
       'Panchamrit set (premium)',
@@ -154,6 +160,7 @@ final kMockProducts = <ProductModel>[
     rating: 4.8,
     reviewCount: 97,
     stock: 15,
+    imageAsset: 'assets/images/image5.jpg',
     includes: [
       'Hand-crafted Brass Vishnu Idol (6 inch)',
       'Satyanarayan Katha & Chalisa book set',
@@ -180,6 +187,7 @@ final kMockProducts = <ProductModel>[
     rating: 4.4,
     reviewCount: 156,
     stock: 40,
+    imageAsset: 'assets/images/image10.jpg',
     includes: [
       'Kumkum & haldi pack',
       'Coconut (1 pc) & betel leaves',
@@ -202,6 +210,7 @@ final kMockProducts = <ProductModel>[
     reviewCount: 203,
     stock: 25,
     isBestSeller: true,
+    imageAsset: 'assets/images/image10.jpg',
     includes: [
       'Vastu Yantra (copper plated)',
       'Premium mango leaf & marigold toran',
@@ -225,6 +234,7 @@ final kMockProducts = <ProductModel>[
     rating: 4.8,
     reviewCount: 74,
     stock: 10,
+    imageAsset: 'assets/images/image11.jpg',
     includes: [
       'Silver-plated Laxmi-Ganesh idol pair',
       'Vastu Yantra (silver plated)',
@@ -251,6 +261,7 @@ final kMockProducts = <ProductModel>[
     rating: 4.6,
     reviewCount: 322,
     stock: 35,
+    imageAsset: 'assets/images/image11.jpg',
     includes: [
       'Laja (puffed rice) 1 kg',
       'Sindoor & alta set',
@@ -275,6 +286,7 @@ final kMockProducts = <ProductModel>[
     reviewCount: 418,
     stock: 20,
     isBestSeller: true,
+    imageAsset: 'assets/images/image9.jpg',
     includes: [
       'Ganesh idol for mandap',
       'Full Saptapadi samagri set',
@@ -300,6 +312,7 @@ final kMockProducts = <ProductModel>[
     rating: 4.9,
     reviewCount: 211,
     stock: 8,
+    imageAsset: 'assets/images/image11.jpg',
     includes: [
       'Full 3-day ceremony samagri',
       'Havan kund (medium) + materials',
@@ -326,6 +339,7 @@ final kMockProducts = <ProductModel>[
     rating: 4.5,
     reviewCount: 178,
     stock: 45,
+    imageAsset: 'assets/images/image6.jpg',
     includes: [
       'Navgraha yantra (copper)',
       'Nine coloured cloths (1 each)',
@@ -348,6 +362,7 @@ final kMockProducts = <ProductModel>[
     reviewCount: 145,
     stock: 28,
     isBestSeller: true,
+    imageAsset: 'assets/images/image6.jpg',
     includes: [
       'Navgraha yantra (silver-plated)',
       'Nine individual puja sets (1 per planet)',
@@ -370,6 +385,7 @@ final kMockProducts = <ProductModel>[
     rating: 4.8,
     reviewCount: 92,
     stock: 12,
+    imageAsset: 'assets/images/image8.jpg',
     includes: [
       'Set of 9 Navgraha brass idols (2 inch)',
       'Silver-plated Navgraha yantra',

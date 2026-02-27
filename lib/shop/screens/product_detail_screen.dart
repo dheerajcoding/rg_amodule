@@ -80,16 +80,23 @@ class ProductDetailScreen extends ConsumerWidget {
               const SizedBox(width: 8),
             ],
             flexibleSpace: FlexibleSpaceBar(
-              background: Container(
-                color: AppColors.primary.withValues(alpha: 0.08),
-                child: Center(
-                  child: Icon(
-                    icon,
-                    size: 100,
-                    color: AppColors.primary.withValues(alpha: 0.35),
-                  ),
-                ),
-              ),
+              background: product.imageAsset != null
+                  ? Image.asset(
+                      product.imageAsset!,
+                      width: double.infinity,
+                      height: double.infinity,
+                      fit: BoxFit.cover,
+                    )
+                  : Container(
+                      color: AppColors.primary.withValues(alpha: 0.08),
+                      child: Center(
+                        child: Icon(
+                          icon,
+                          size: 100,
+                          color: AppColors.primary.withValues(alpha: 0.35),
+                        ),
+                      ),
+                    ),
             ),
           ),
 

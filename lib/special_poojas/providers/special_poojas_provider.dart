@@ -1,7 +1,6 @@
 // lib/special_poojas/providers/special_poojas_provider.dart
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/providers/supabase_provider.dart';
 import '../models/special_pooja_model.dart';

@@ -35,7 +35,7 @@ class PanditCard extends StatelessWidget {
           ],
         ),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(14, 16, 14, 12),
+          padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
@@ -48,15 +48,23 @@ class PanditCard extends StatelessWidget {
                     height: 58,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      gradient: LinearGradient(
-                        colors: [
-                          (pandit.avatarColor ?? AppColors.primary)
-                              .withValues(alpha: 0.9),
-                          (pandit.avatarColor ?? AppColors.primary),
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
+                      gradient: pandit.imagePath == null
+                          ? LinearGradient(
+                              colors: [
+                                (pandit.avatarColor ?? AppColors.primary)
+                                    .withValues(alpha: 0.9),
+                                (pandit.avatarColor ?? AppColors.primary),
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            )
+                          : null,
+                      image: pandit.imagePath != null
+                          ? DecorationImage(
+                              image: AssetImage(pandit.imagePath!),
+                              fit: BoxFit.cover,
+                            )
+                          : null,
                       boxShadow: [
                         BoxShadow(
                           color: (pandit.avatarColor ?? AppColors.primary)
@@ -66,16 +74,18 @@ class PanditCard extends StatelessWidget {
                         ),
                       ],
                     ),
-                    child: Center(
-                      child: Text(
-                        pandit.avatarInitials ?? pandit.name[0],
-                        style: GoogleFonts.inter(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 19,
-                        ),
-                      ),
-                    ),
+                    child: pandit.imagePath == null
+                        ? Center(
+                            child: Text(
+                              pandit.avatarInitials ?? pandit.name[0],
+                              style: GoogleFonts.inter(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 19,
+                              ),
+                            ),
+                          )
+                        : null,
                   ),
                   Positioned(
                     right: 1,
@@ -94,7 +104,7 @@ class PanditCard extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 11),
+              const SizedBox(height: 8),
 
               // ── Name ────────────────────────────────────────────────────
               Text(
@@ -122,7 +132,7 @@ class PanditCard extends StatelessWidget {
                   color: AppColors.textSecondary,
                 ),
               ),
-              const SizedBox(height: 9),
+              const SizedBox(height: 6),
 
               // ── Rating row ──────────────────────────────────────────────
               Row(
@@ -149,7 +159,7 @@ class PanditCard extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 5),
+              const SizedBox(height: 4),
 
               // ── Experience badge ─────────────────────────────────────────
               Container(
@@ -168,7 +178,7 @@ class PanditCard extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
 
               // ── Book button ──────────────────────────────────────────────
               GestureDetector(

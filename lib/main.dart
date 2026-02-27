@@ -35,21 +35,21 @@ Future<void> main() async {
 
   runApp(
     // ProviderScope is required at the root for Riverpod.
-    const ProviderScope(child: DivinePoojaApp()),
+    const ProviderScope(child: SaralPoojaApp()),
   );
 }
 
 /// Root application widget.
 /// Consumes [routerProvider] to drive navigation via go_router.
-class DivinePoojaApp extends ConsumerWidget {
-  const DivinePoojaApp({super.key});
+class SaralPoojaApp extends ConsumerWidget {
+  const SaralPoojaApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
 
     return MaterialApp.router(
-      title: 'DivinePooja',
+      title: 'Saral Pooja',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,

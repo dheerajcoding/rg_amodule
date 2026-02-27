@@ -269,11 +269,16 @@ class _HeroBackground extends StatelessWidget {
         children: [
           if (package.imageUrl != null)
             Positioned.fill(
-              child: Image.network(
-                package.imageUrl!,
-                fit: BoxFit.cover,
-                errorBuilder: (_, _, _) => const SizedBox.shrink(),
-              ),
+              child: package.imageUrl!.startsWith('assets/')
+                  ? Image.asset(
+                      package.imageUrl!,
+                      fit: BoxFit.cover,
+                    )
+                  : Image.network(
+                      package.imageUrl!,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, _, _) => const SizedBox.shrink(),
+                    ),
             ),
           // Dark scrim for text legibility
           Positioned.fill(

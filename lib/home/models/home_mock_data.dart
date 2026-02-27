@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/constants/app_images.dart';
 import '../../core/theme/app_colors.dart';
 import 'home_models.dart';
 
@@ -89,6 +90,7 @@ const List<MockPandit> kMockPandits = [
     isOnline: true,
     avatarInitials: 'RS',
     avatarColor: Color(0xFFFF6B35),
+    imagePath: AppImages.pandit1,
   ),
   MockPandit(
     id: 'p2',
@@ -100,6 +102,7 @@ const List<MockPandit> kMockPandits = [
     isOnline: true,
     avatarInitials: 'SJ',
     avatarColor: Color(0xFF2D4A8A),
+    imagePath: AppImages.pandit2,
   ),
   MockPandit(
     id: 'p3',
@@ -111,6 +114,7 @@ const List<MockPandit> kMockPandits = [
     isOnline: false,
     avatarInitials: 'KM',
     avatarColor: Color(0xFF6A1B9A),
+    imagePath: AppImages.pandit3,
   ),
   MockPandit(
     id: 'p4',
@@ -122,6 +126,7 @@ const List<MockPandit> kMockPandits = [
     isOnline: true,
     avatarInitials: 'PD',
     avatarColor: Color(0xFF1B5E20),
+    imagePath: AppImages.pandit1,
   ),
   MockPandit(
     id: 'p5',
@@ -133,6 +138,7 @@ const List<MockPandit> kMockPandits = [
     isOnline: false,
     avatarInitials: 'AT',
     avatarColor: Color(0xFFBF6000),
+    imagePath: AppImages.pandit2,
   ),
 ];
 

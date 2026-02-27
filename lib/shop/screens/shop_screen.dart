@@ -250,13 +250,25 @@ class _ProductCard extends ConsumerWidget {
                         top: Radius.circular(14),
                       ),
                     ),
-                    child: Center(
-                      child: Icon(
-                        icon,
-                        size: 52,
-                        color: AppColors.primary.withValues(alpha: 0.45),
-                      ),
-                    ),
+                    child: product.imageAsset != null
+                        ? ClipRRect(
+                            borderRadius: const BorderRadius.vertical(
+                              top: Radius.circular(14),
+                            ),
+                            child: Image.asset(
+                              product.imageAsset!,
+                              width: double.infinity,
+                              height: double.infinity,
+                              fit: BoxFit.cover,
+                            ),
+                          )
+                        : Center(
+                            child: Icon(
+                              icon,
+                              size: 52,
+                              color: AppColors.primary.withValues(alpha: 0.45),
+                            ),
+                          ),
                   ),
                   if (product.isBestSeller)
                     Positioned(

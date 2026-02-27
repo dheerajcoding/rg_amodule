@@ -74,7 +74,7 @@ class _UnauthAccountView extends StatelessWidget {
                     ),
                     const SizedBox(height: 20),
                     const Text(
-                      'Welcome to Divine Pooja',
+                      'Welcome to Saral Pooja',
                       style: TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,

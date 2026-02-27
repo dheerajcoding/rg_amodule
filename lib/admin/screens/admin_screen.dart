@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../auth/providers/auth_provider.dart';
 import '../../booking/models/booking_status.dart';
+import '../../core/constants/demo_config.dart';
 import '../../core/router/app_router.dart';
 import '../../core/theme/app_colors.dart';
 import '../../widgets/base_scaffold.dart';
@@ -57,6 +58,10 @@ class AdminScreen extends ConsumerWidget {
                 children: [
                   // ── Admin identity badge ──────────────────────────────────
                   _AdminBadge(userName: user?.name ?? ''),
+                  const SizedBox(height: 12),
+
+                  // ── Demo mode indicator ───────────────────────────────────
+                  if (DemoConfig.demoMode) const _DemoModeBanner(),
                   const SizedBox(height: 20),
 
                   // ── Stats grid ────────────────────────────────────────────
@@ -684,6 +689,70 @@ class _MiniStat extends StatelessWidget {
           textAlign: TextAlign.center,
         ),
       ],
+    );
+  }
+}
+
+// ── Demo mode banner ──────────────────────────────────────────────────────────
+
+class _DemoModeBanner extends StatelessWidget {
+  const _DemoModeBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.info.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.info.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.science_rounded,
+              size: 18, color: AppColors.info),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Demo Mode Active',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                    color: AppColors.info,
+                  ),
+                ),
+                const Text(
+                  'Destructive actions are disabled. Data is pre-seeded.',
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: AppColors.info.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: const Text(
+              'DEMO',
+              style: TextStyle(
+                fontSize: 9,
+                fontWeight: FontWeight.bold,
+                color: AppColors.info,
+                letterSpacing: 1,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

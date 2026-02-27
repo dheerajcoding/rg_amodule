@@ -55,16 +55,41 @@ class _SpecialPoojaDetailScreenState
                 ),
                 child: Stack(
                   children: [
-                    // Large background icon
-                    Positioned(
-                      right: -30,
-                      bottom: -30,
-                      child: Opacity(
-                        opacity: 0.1,
-                        child: const Icon(
-                          Icons.temple_hindu,
-                          size: 200,
-                          color: Colors.white,
+                    // Full-bleed asset image if available
+                    if (pooja.imageUrl != null &&
+                        pooja.imageUrl!.startsWith('assets/'))
+                      Positioned.fill(
+                        child: Image.asset(
+                          pooja.imageUrl!,
+                          fit: BoxFit.cover,
+                        ),
+                      )
+                    else
+                      // Large background icon fallback
+                      Positioned(
+                        right: -30,
+                        bottom: -30,
+                        child: Opacity(
+                          opacity: 0.1,
+                          child: const Icon(
+                            Icons.temple_hindu,
+                            size: 200,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    // Dark scrim for text legibility
+                    Positioned.fill(
+                      child: Container(
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.transparent,
+                              Colors.black54,
+                            ],
+                          ),
                         ),
                       ),
                     ),

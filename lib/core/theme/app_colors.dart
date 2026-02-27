@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// DivinePooja — Premium spiritual services colour palette.
+/// Saral Pooja — Premium spiritual services colour palette.
 class AppColors {
   AppColors._();
 
