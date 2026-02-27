@@ -1,11 +1,40 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/providers/supabase_provider.dart';
 import '../models/package_filter.dart';
 import '../models/package_mock_data.dart';
 import '../models/package_model.dart';
+import '../repository/supabase_package_repository.dart';
 
 // ── Page size ─────────────────────────────────────────────────────────────────
 const kPackagePageSize = 5;
+
+// ── Repository Provider ───────────────────────────────────────────────────────
+
+/// Production Supabase package repository.
+/// Override with [MockPackageRepository] in tests:
+///   packageRepositoryProvider.overrideWithValue(MockPackageRepository())
+final packageRepositoryProvider = Provider<IPackageRepository>((ref) {
+  return SupabasePackageRepository(ref.watch(supabaseClientProvider));
+});
+
+// ── Supabase async packages fetch ─────────────────────────────────────────────
+
+/// Async fetch from Supabase with filter applied server-side.
+/// Used for the live packages list tab.
+final packagesFetchProvider =
+    FutureProvider.autoDispose<List<PackageModel>>((ref) async {
+  final repo = ref.watch(packageRepositoryProvider);
+  final filter = ref.watch(packageFilterProvider);
+  return repo.fetchPackages(filter: filter);
+});
+
+/// Featured packages for home screen carousel.
+final featuredPackagesProvider =
+    FutureProvider.autoDispose<List<PackageModel>>((ref) async {
+  final repo = ref.watch(packageRepositoryProvider);
+  return repo.fetchFeaturedPackages(limit: 6);
+});
 
 // ── Filter state ──────────────────────────────────────────────────────────────
 final packageFilterProvider =

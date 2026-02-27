@@ -259,7 +259,9 @@ class _PanditCard extends StatelessWidget {
                             fontSize: 11,
                             color: AppColors.textSecondary)),
                     Text(
-                      pandit.rates.first.priceLabel,
+                      pandit.rates.isNotEmpty
+                          ? pandit.rates.first.priceLabel
+                          : '₹—',
                       style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 15,

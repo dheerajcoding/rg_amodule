@@ -1,23 +1,26 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/providers/supabase_provider.dart';
 import '../controllers/consultation_controller.dart';
 import '../models/consultation_session.dart';
 import '../models/pandit_model.dart';
 import '../repository/consultation_repository.dart';
+import '../repository/ws_session_repository.dart';
 
 // ── Repository Providers ──────────────────────────────────────────────────────
 
-/// WebSocket-ready session repository.
-/// To go production: swap `MockSessionRepository()` with `WsSessionRepository()`.
-final sessionRepositoryProvider = Provider<ISessionRepository>(
-  (ref) => MockSessionRepository(),
-);
+/// Production WebSocket + Realtime session repository.
+/// Override with [MockSessionRepository] in tests or offline dev:
+///   overrides: [sessionRepositoryProvider.overrideWithValue(MockSessionRepository())]
+final sessionRepositoryProvider = Provider<ISessionRepository>((ref) {
+  return WsSessionRepository(ref.watch(supabaseClientProvider));
+});
 
-/// Pandit data repository.
-/// To go production: swap `MockPanditRepository()` with `SupabasePanditRepository()`.
-final panditRepositoryProvider = Provider<IPanditRepository>(
-  (ref) => MockPanditRepository(),
-);
+/// Supabase pandit repository.
+/// Override with [MockPanditRepository] for offline development.
+final panditRepositoryProvider = Provider<IPanditRepository>((ref) {
+  return SupabasePanditRepository(ref.watch(supabaseClientProvider));
+});
 
 // ── Pandits List Provider ─────────────────────────────────────────────────────
 
@@ -37,6 +40,7 @@ final consultationFlowProvider = StateNotifierProvider.family
     .autoDispose<ConsultationFlowController, ConsultationFlowState, String>(
   (ref, panditId) {
     final pandits = ref.read(panditsProvider).pandits;
+    final repo    = ref.read(sessionRepositoryProvider);
     PanditModel pandit;
     try {
       pandit = pandits.firstWhere((p) => p.id == panditId);
@@ -56,7 +60,7 @@ final consultationFlowProvider = StateNotifierProvider.family
         ],
       );
     }
-    return ConsultationFlowController(pandit);
+    return ConsultationFlowController(pandit, repository: repo);
   },
 );
 

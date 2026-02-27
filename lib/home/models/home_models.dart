@@ -7,6 +7,7 @@ class HeroSlide {
     required this.subtitle,
     required this.gradient,
     required this.icon,
+    this.imagePath,
     this.actionLabel,
     this.actionRoute,
   });
@@ -15,6 +16,8 @@ class HeroSlide {
   final String subtitle;
   final List<Color> gradient;
   final IconData icon;
+  /// Local asset path, e.g. 'assets/images/image1.jpg'
+  final String? imagePath;
   final String? actionLabel;
   final String? actionRoute;
 }

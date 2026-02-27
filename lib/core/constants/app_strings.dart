@@ -26,7 +26,7 @@ class AppStrings {
   static const String services = 'Services';
 
   // General
-  static const String appName = 'RG AModule';
+  static const String appName = 'DivinePooja';
   static const String loading = 'Loading…';
   static const String error = 'Something went wrong.';
   static const String retry = 'Retry';

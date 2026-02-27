@@ -1,16 +1,16 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../models/home_models.dart';
 
-/// Auto-scrolling hero banner with dot indicators.
-/// Uses a plain [PageView] — no external packages required.
+/// Auto-scrolling hero banner with image backgrounds and dot indicators.
 class HeroSlider extends StatefulWidget {
   const HeroSlider({
     super.key,
     required this.slides,
-    this.height = 200,
+    this.height = 210,
     this.autoPlayInterval = const Duration(seconds: 4),
     this.onActionTap,
   });
@@ -18,8 +18,6 @@ class HeroSlider extends StatefulWidget {
   final List<HeroSlide> slides;
   final double height;
   final Duration autoPlayInterval;
-
-  /// Called with the slide's [actionRoute] when the CTA button is tapped.
   final void Function(String route)? onActionTap;
 
   @override
@@ -34,8 +32,7 @@ class _HeroSliderState extends State<HeroSlider> {
   @override
   void initState() {
     super.initState();
-    // Start well into the virtual page list so we can scroll both ways.
-    _controller = PageController(initialPage: _current);
+    _controller = PageController();
     _startAutoPlay();
   }
 
@@ -43,11 +40,9 @@ class _HeroSliderState extends State<HeroSlider> {
     _timer = Timer.periodic(widget.autoPlayInterval, (_) {
       if (!mounted) return;
       final next = (_current + 1) % widget.slides.length;
-      _controller.animateToPage(
-        next,
-        duration: const Duration(milliseconds: 500),
-        curve: Curves.easeInOut,
-      );
+      _controller.animateToPage(next,
+          duration: const Duration(milliseconds: 600),
+          curve: Curves.easeInOutCubic);
     });
   }
 
@@ -68,8 +63,8 @@ class _HeroSliderState extends State<HeroSlider> {
             controller: _controller,
             itemCount: widget.slides.length,
             onPageChanged: (i) => setState(() => _current = i),
-            itemBuilder: (_, i) =>
-                _SlideCard(slide: widget.slides[i], onActionTap: widget.onActionTap),
+            itemBuilder: (_, i) => _SlideCard(
+                slide: widget.slides[i], onActionTap: widget.onActionTap),
           ),
         ),
         const SizedBox(height: 12),
@@ -79,7 +74,7 @@ class _HeroSliderState extends State<HeroSlider> {
   }
 }
 
-// ── Single slide card ──────────────────────────────────────────────────────────
+// ── Single slide card with image background ────────────────────────────────────
 class _SlideCard extends StatelessWidget {
   const _SlideCard({required this.slide, this.onActionTap});
 
@@ -90,71 +85,97 @@ class _SlideCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: slide.gradient,
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: slide.gradient.first.withValues(alpha: 0.35),
-              blurRadius: 16,
-              offset: const Offset(0, 6),
-            ),
-          ],
-        ),
-        padding: const EdgeInsets.all(24),
-        child: Row(
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(22),
+        child: Stack(
+          fit: StackFit.expand,
           children: [
-            // Text content
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    slide.title,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      height: 1.3,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    slide.subtitle,
-                    style: const TextStyle(
-                      color: Colors.white70,
-                      fontSize: 12.5,
-                      height: 1.4,
-                    ),
-                  ),
-                  if (slide.actionLabel != null) ...[
-                    const SizedBox(height: 14),
-                    _CTAButton(
-                      label: slide.actionLabel!,
-                      onTap: slide.actionRoute != null
-                          ? () => onActionTap?.call(slide.actionRoute!)
-                          : null,
-                    ),
+            // ── Background image ────────────────────────────────────────────
+            if (slide.imagePath != null)
+              Image.asset(
+                slide.imagePath!,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => _GradientBackground(slide: slide),
+              )
+            else
+              _GradientBackground(slide: slide),
+
+            // ── Dark scrim for readability ─────────────────────────────────
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Colors.black.withValues(alpha: 0.62),
+                    Colors.black.withValues(alpha: 0.20),
+                    Colors.black.withValues(alpha: 0.05),
                   ],
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                ),
+              ),
+            ),
+
+            // ── Content ────────────────────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 20),
+              child: Row(
+                children: [
+                  Expanded(
+                    flex: 3,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          slide.title,
+                          style: GoogleFonts.playfairDisplay(
+                            color: Colors.white,
+                            fontSize: 21,
+                            fontWeight: FontWeight.w700,
+                            height: 1.25,
+                            shadows: [
+                              Shadow(
+                                color: Colors.black.withValues(alpha: 0.4),
+                                blurRadius: 6,
+                              )
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 7),
+                        Text(
+                          slide.subtitle,
+                          style: GoogleFonts.inter(
+                            color: Colors.white.withValues(alpha: 0.88),
+                            fontSize: 12.5,
+                            height: 1.45,
+                          ),
+                        ),
+                        if (slide.actionLabel != null) ...[
+                          const SizedBox(height: 14),
+                          _CTAButton(
+                            label: slide.actionLabel!,
+                            gradient: slide.gradient,
+                            onTap: slide.actionRoute != null
+                                ? () => onActionTap?.call(slide.actionRoute!)
+                                : null,
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  // Frosted icon badge
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: Container(
+                      width: 60,
+                      height: 60,
+                      color: Colors.white.withValues(alpha: 0.18),
+                      child: Icon(slide.icon, color: Colors.white, size: 30),
+                    ),
+                  ),
                 ],
               ),
-            ),
-            const SizedBox(width: 16),
-            // Decorative icon
-            Container(
-              width: 72,
-              height: 72,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.18),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(slide.icon, color: Colors.white, size: 36),
             ),
           ],
         ),
@@ -163,10 +184,31 @@ class _SlideCard extends StatelessWidget {
   }
 }
 
+/// Fallback gradient background when no image is provided.
+class _GradientBackground extends StatelessWidget {
+  const _GradientBackground({required this.slide});
+
+  final HeroSlide slide;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: slide.gradient,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+    );
+  }
+}
+
 class _CTAButton extends StatelessWidget {
-  const _CTAButton({required this.label, this.onTap});
+  const _CTAButton({required this.label, required this.gradient, this.onTap});
 
   final String label;
+  final List<Color> gradient;
   final VoidCallback? onTap;
 
   @override
@@ -174,17 +216,24 @@ class _CTAButton extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(22),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.18),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Text(
           label,
-          style: const TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF1A1A2E),
+          style: GoogleFonts.inter(
+            fontSize: 12.5,
+            fontWeight: FontWeight.w700,
+            color: gradient.isNotEmpty ? gradient.first : const Color(0xFFD4611A),
           ),
         ),
       ),
@@ -209,10 +258,10 @@ class _DotIndicators extends StatelessWidget {
         return AnimatedContainer(
           duration: const Duration(milliseconds: 250),
           margin: const EdgeInsets.symmetric(horizontal: 4),
-          width: active ? 20 : 8,
-          height: 8,
+          width: active ? 22 : 7,
+          height: 7,
           decoration: BoxDecoration(
-            color: active ? color : color.withValues(alpha: 0.3),
+            color: active ? color : color.withValues(alpha: 0.28),
             borderRadius: BorderRadius.circular(4),
           ),
         );

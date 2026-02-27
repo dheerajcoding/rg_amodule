@@ -10,6 +10,8 @@ import '../models/booking_model.dart';
 import '../models/booking_status.dart';
 import '../models/time_slot_model.dart';
 import '../providers/booking_provider.dart';
+import '../../consultation/providers/consultation_provider.dart';
+import '../../consultation/models/pandit_model.dart' show PanditModel;
 
 // ── Entry Point ───────────────────────────────────────────────────────────────
 
@@ -950,19 +952,52 @@ class _StepPandit extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final wz = ref.watch(bookingWizardProvider(pre));
-    final ctrl = ref.read(bookingWizardProvider(pre).notifier);
+    final wz   = ref.watch(bookingWizardProvider(pre));
+    final ctrl  = ref.read(bookingWizardProvider(pre).notifier);
+    final panditState = ref.watch(panditsProvider);
+
+    // Convert PanditModel → PanditOption for booking draft compatibility.
+    PanditOption toPanditOption(PanditModel pm) => PanditOption(
+          id:            pm.id,
+          name:          pm.name,
+          specialty:     pm.specialty,
+          rating:        pm.rating,
+          totalBookings: pm.totalSessions,
+          imageUrl:      pm.avatarUrl,
+          isAvailable:   pm.isOnline,
+        );
+
+    final options = [
+      kAutoAssignPandit,
+      if (panditState.loading)
+        ...[]
+      else
+        ...panditState.pandits.map(toPanditOption),
+    ];
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
-      children: kMockPandits.map((p) {
-        final selected = wz.draft.panditOption?.id == p.id;
-        return _PanditTile(
-          pandit: p,
-          selected: selected,
-          onTap: () => ctrl.selectPandit(p),
-        );
-      }).toList(),
+      children: [
+        if (panditState.loading)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 24),
+            child: Center(child: CircularProgressIndicator()),
+          )
+        else if (panditState.error != null)
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text('Could not load pandits. Showing auto-assign only.',
+                style: TextStyle(color: Theme.of(context).colorScheme.error)),
+          ),
+        ...options.map((p) {
+          final selected = wz.draft.panditOption?.id == p.id;
+          return _PanditTile(
+            pandit:   p,
+            selected: selected,
+            onTap:    () => ctrl.selectPandit(p),
+          );
+        }),
+      ],
     );
   }
 }

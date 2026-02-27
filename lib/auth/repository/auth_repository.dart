@@ -181,28 +181,65 @@ class AuthRepository {
   supa.Session? get currentSession => _client.auth.currentSession;
 
   // ── Helpers ──────────────────────────────────────────────────────────────
-  /// Fetches the profile row; if missing (e.g. trigger hasn't fired yet)
-  /// builds a minimal [UserModel] from the Supabase auth user data.
-  Future<UserModel> _fetchOrCreateProfile(supa.User authUser) async {
-    final profile = await fetchProfile(authUser.id);
-    if (profile != null) return profile;
 
-    // Fallback: construct from auth metadata
-    final meta = authUser.userMetadata ?? {};
+  /// Fetches the profile row. If missing (no trigger / first login after email
+  /// confirmation), inserts it now using the live session so RLS is satisfied.
+  Future<UserModel> _fetchOrCreateProfile(supa.User authUser) async {
+    var profile = await fetchProfile(authUser.id);
+    if (profile != null) {
+      // profiles table has no email column — fill it from auth.users
+      if (profile.email.isEmpty && authUser.email != null) {
+        profile = profile.copyWith(email: authUser.email);
+      }
+      return profile;
+    }
+
+    // Profile is missing — build values from auth metadata and INSERT.
+    final meta    = authUser.userMetadata ?? {};
+    final name    = (meta['full_name'] as String?) ??
+        (meta['name'] as String?) ??
+        authUser.email?.split('@').first ??
+        'User';
+    final roleName = (meta['role'] as String?) ?? UserRole.user.name;
+
+    try {
+      await _client.from('profiles').insert({
+        'id':        authUser.id,
+        'full_name': name,
+        'role':      roleName,
+        'is_active': true,
+      });
+      // Re-fetch after insert to get the DB-generated row.
+      final inserted = await fetchProfile(authUser.id);
+      if (inserted != null) {
+        return inserted.copyWith(email: authUser.email);
+      }
+    } catch (_) {
+      // INSERT failed — profile may have just been created by the DB trigger
+      // (race condition). Try one more fetch before falling back.
+      final retry = await fetchProfile(authUser.id);
+      if (retry != null) {
+        return retry.copyWith(email: authUser.email);
+      }
+    }
+
+    // Absolute fallback: return an in-memory model so login doesn't hard-fail.
     return UserModel(
-      id: authUser.id,
-      name: (meta['name'] as String?) ??
-          (meta['full_name'] as String?) ??
-          authUser.email?.split('@').first ??
-          'User',
-      email: authUser.email ?? '',
-      role: UserRole.values.firstWhere(
-        (r) => r.name == (meta['role'] as String?),
-        orElse: () => UserRole.user,
+      id:        authUser.id,
+      name:      name,
+      email:     authUser.email ?? '',
+      role:      UserRole.values.firstWhere(
+        (r) => r.name == roleName,
+        orElse:  () => UserRole.user,
       ),
       createdAt: DateTime.tryParse(authUser.createdAt),
     );
   }
+
+  /// Public version used by [AuthController._loadProfile] —
+  /// fetches the profile and inserts it when missing.
+  Future<UserModel> fetchOrCreateProfile(supa.User authUser) =>
+      _fetchOrCreateProfile(authUser);
 
   /// Maps Supabase auth exception messages to user-friendly strings.
   String _mapSupabaseAuthError(supa.AuthException e) {

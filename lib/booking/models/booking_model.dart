@@ -189,6 +189,8 @@ class BookingModel {
   bool get isPast => status.isFinal || date.isBefore(DateTime.now());
 
   // ── Serialisation (Supabase-ready) ────────────────────────────────────────
+  // NOTE: pandit_name is intentionally excluded — it is NOT a column in the
+  // bookings table. The name is resolved at read time via a profiles JOIN.
   Map<String, dynamic> toJson() => {
         'id':            id,
         'user_id':       userId,
@@ -202,7 +204,6 @@ class BookingModel {
         'amount':        amount,
         'created_at':    createdAt.toIso8601String(),
         'pandit_id':     panditId,
-        'pandit_name':   panditName,
         'is_paid':       isPaid,
         'payment_id':    paymentId,
         'notes':         notes,

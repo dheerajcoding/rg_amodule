@@ -13,8 +13,8 @@ class NavDestination {
   });
 
   final String label;
-  final Widget icon;
-  final Widget activeIcon;
+  final IconData icon;
+  final IconData activeIcon;
   final String initialLocation;
 }
 
@@ -47,8 +47,8 @@ class BottomNavShell extends StatelessWidget {
             .map(
               (d) => NavigationDestination(
                 label: d.label,
-                icon: d.icon,
-                selectedIcon: d.activeIcon,
+                icon: Icon(d.icon),
+                selectedIcon: Icon(d.activeIcon),
               ),
             )
             .toList(),
@@ -61,3 +61,4 @@ class BottomNavShell extends StatelessWidget {
     );
   }
 }
+

@@ -61,8 +61,13 @@ class ConsultationFlowState {
 /// Key: `pandit.id`
 class ConsultationFlowController
     extends StateNotifier<ConsultationFlowState> {
-  ConsultationFlowController(PanditModel pandit)
-      : super(ConsultationFlowState(pandit: pandit));
+  ConsultationFlowController(
+    PanditModel pandit, {
+    required ISessionRepository repository,
+  })  : _repository = repository,
+        super(ConsultationFlowState(pandit: pandit));
+
+  final ISessionRepository _repository;
 
   // ── Step 1: select duration ──────────────────────────────────────────────
 
@@ -102,14 +107,15 @@ class ConsultationFlowController
         state.copyWith(processingPayment: true, clearError: true);
 
     try {
-      // TODO: Replace with real payment SDK call.
+      // TODO: Replace with real payment SDK call before this line.
       // await RazorpayService.charge(amount: state.selectedRate!.totalPaise);
       await Future.delayed(const Duration(seconds: 1)); // mock payment delay
 
-      final session = ConsultationSession.create(
-        pandit: state.pandit,
-        rate: state.selectedRate!,
-        userId: userId,
+      // Create the DB session row via the server-authoritative RPC.
+      final session = await _repository.startSession(
+        pandit:   state.pandit,
+        rate:     state.selectedRate!,
+        userId:   userId,
         userName: userName,
       );
 
@@ -121,7 +127,7 @@ class ConsultationFlowController
     } catch (e) {
       state = state.copyWith(
         processingPayment: false,
-        error: 'Payment failed: ${e.toString()}',
+        error: 'Failed to start session: ${e.toString()}',
       );
     }
   }
@@ -244,6 +250,17 @@ class SessionController extends StateNotifier<SessionState> {
   Timer? _countdownTimer;
   StreamSubscription<SessionEvent>? _streamSub;
 
+  /// Set atomically when a terminal state is reached locally or from server.
+  /// Guards against:
+  ///   - Double `end_consultation_session` RPC calls
+  ///   - `syncFromServer()` running after endSession() has already fired
+  ///   - `_checkWarningAndExpiry` emitting expired state after ended state
+  bool _sessionEnded = false;
+
+  /// Prevents concurrent `syncFromServer` invocations (e.g., rapid
+  /// foreground/background transitions).
+  bool _syncInProgress = false;
+
   // ── Lifecycle ─────────────────────────────────────────────────────────────
 
   /// Call immediately after construction.
@@ -307,6 +324,8 @@ class SessionController extends StateNotifier<SessionState> {
         if (!(_countdownTimer?.isActive ?? false)) _startCountdown();
 
       case SessionEndedEvent(:final reason):
+        if (_sessionEnded) return; // Idempotent — ignore duplicate end events
+        _sessionEnded = true;
         _cancelTimer();
         final status = reason == 'time_expired'
             ? SessionStatus.expired
@@ -349,7 +368,8 @@ class SessionController extends StateNotifier<SessionState> {
 
     if (remaining <= 0) {
       _cancelTimer();
-      if (!state.isEnded) {
+      if (!_sessionEnded && !state.isEnded) {
+        _sessionEnded = true;
         state = state.copyWith(
           session: state.session.copyWith(status: SessionStatus.expired),
           chatLocked: true,
@@ -399,7 +419,27 @@ class SessionController extends StateNotifier<SessionState> {
     try {
       // TODO: Trigger payment for extension before calling repo.
       // await RazorpayService.charge(amount: extensionRate.totalPaise);
-      await _repo.extendSession(state.session.id, addMinutes);
+
+      // extendSession now calls the atomic `increment_session_duration` RPC
+      // and re-fetches the server's canonical duration_minutes.
+      // No local read-modify-write; no race condition possible.
+      final newDurationMins =
+          await _repo.extendSession(state.session.id, addMinutes);
+
+      // Derive new extendedSeconds from server's authoritative total.
+      // clamp to prevent any impossible negative value.
+      final newExtendedSecs =
+          (newDurationMins * 60 - state.session.totalSeconds)
+              .clamp(0, 99999);
+
+      state = state.copyWith(
+        extending: false,
+        session: state.session.copyWith(extendedSeconds: newExtendedSecs),
+        // Optimistically advance the local countdown; syncFromServer() will
+        // reconcile the exact remaining time on next app resume.
+        remainingSeconds:
+            (state.remainingSeconds + addMinutes * 60).clamp(0, 99999),
+      );
     } catch (e) {
       state = state.copyWith(
         extending: false,
@@ -409,9 +449,88 @@ class SessionController extends StateNotifier<SessionState> {
   }
 
   /// User requested graceful end — ask confirmation before calling this.
+  ///
+  /// Guard: idempotent — safe to call even if the timer already expired or the
+  /// server already sent a SessionEndedEvent. The `_sessionEnded` flag ensures
+  /// the end_consultation_session RPC is called at most once per session.
   Future<void> endSession() async {
+    if (_sessionEnded) return;
+    _sessionEnded = true;
     _cancelTimer();
-    await _repo.endSession(state.session.id);
+    try {
+      await _repo.endSession(state.session.id);
+    } catch (_) {
+      // Session may already be ended server-side (e.g., timer expired).
+      // Local state is already correct — swallow the error silently.
+    }
+  }
+
+  /// Re-sync remaining time from the server after the app was backgrounded.
+  ///
+  /// Called by [ChatScreen] via [WidgetsBindingObserver.didChangeAppLifecycleState]
+  /// when the lifecycle transitions to [AppLifecycleState.resumed].
+  /// Prevents the local countdown from drifting after Android Doze / iOS background.
+  Future<void> syncFromServer() async {
+    // Guard 1: never sync after local session end
+    if (!mounted || _sessionEnded || state.isEnded) return;
+    // Guard 2: prevent concurrent sync calls (rapid resume events)
+    if (_syncInProgress) return;
+    _syncInProgress = true;
+
+    try {
+      final data = await _repo.fetchSessionStatus(state.session.id);
+      if (data == null || !mounted || _sessionEnded) return;
+
+      final serverStatus = data['status'] as String? ?? '';
+
+      // Server says session is no longer active — lock UI immediately.
+      if (serverStatus != 'active') {
+        if (_sessionEnded) return; // double-check after async gap
+        _sessionEnded = true;
+        _cancelTimer();
+        if (!mounted) return;
+        state = state.copyWith(
+          session: state.session.copyWith(
+            status: serverStatus == 'expired'
+                ? SessionStatus.expired
+                : SessionStatus.ended,
+          ),
+          chatLocked: true,
+          remainingSeconds: 0,
+        );
+        _addSystemMessage('Session ended while you were away.');
+        return;
+      }
+
+      // Recalculate remaining from authoritative DB values.
+      // Clamp to [0, allottedSeconds] — can never be negative.
+      final consumed = (data['consumed_minutes'] as int? ?? 0).clamp(0, 99999);
+      final duration = (data['duration_minutes'] as int?
+              ?? (state.session.allottedSeconds ~/ 60))
+          .clamp(0, 99999);
+      final remaining = ((duration - consumed) * 60)
+          .clamp(0, state.session.allottedSeconds);
+
+      if (!mounted || _sessionEnded) return;
+      if (remaining <= 0) {
+        _sessionEnded = true;
+        _cancelTimer();
+        state = state.copyWith(
+          session: state.session.copyWith(status: SessionStatus.expired),
+          chatLocked: true,
+          remainingSeconds: 0,
+        );
+        _addSystemMessage('Session time expired.');
+      } else {
+        state = state.copyWith(remainingSeconds: remaining);
+        // Restart local timer if it stopped while backgrounded.
+        if (!(_countdownTimer?.isActive ?? false) && state.isActive) {
+          _startCountdown();
+        }
+      }
+    } finally {
+      _syncInProgress = false;
+    }
   }
 
   void setEndRequested(bool value) {

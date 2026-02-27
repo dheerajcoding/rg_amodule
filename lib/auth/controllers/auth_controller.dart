@@ -71,38 +71,11 @@ class AuthController extends StateNotifier<AuthState> {
     }
   }
 
-  /// Fetches the profile row and transitions to [AuthAuthenticated].
-  /// Falls back to a minimal model built from auth metadata if profile is
-  /// missing (e.g. email confirmation pending / trigger race).
+  /// Fetches (or creates) the profile row and transitions to [AuthAuthenticated].
   Future<void> _loadProfile(supa.User authUser) async {
     try {
-      var profile = await _repository.fetchProfile(authUser.id);
-
-      if (profile != null) {
-        // Profiles table has no email column — fill it from auth.users
-        if (profile.email.isEmpty && authUser.email != null) {
-          profile = profile.copyWith(email: authUser.email);
-        }
-        state = AuthAuthenticated(profile);
-      } else {
-        // Build minimal model from auth metadata until profile is ready.
-        final meta = authUser.userMetadata ?? {};
-        state = AuthAuthenticated(
-          UserModel(
-            id: authUser.id,
-            name: (meta['full_name'] as String?) ??
-                (meta['name'] as String?) ??
-                authUser.email?.split('@').first ??
-                'User',
-            email: authUser.email ?? '',
-            role: UserRole.values.firstWhere(
-              (r) => r.name == (meta['role'] as String?),
-              orElse: () => UserRole.user,
-            ),
-            createdAt: DateTime.tryParse(authUser.createdAt),
-          ),
-        );
-      }
+      final profile = await _repository.fetchOrCreateProfile(authUser);
+      state = AuthAuthenticated(profile);
     } catch (_) {
       state = const AuthUnauthenticated();
     }

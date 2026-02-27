@@ -7,7 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../core/theme/app_colors.dart';
-import '../controllers/admin_controller.dart';
+import '../../core/constants/demo_config.dart';
 import '../models/admin_models.dart';
 import '../providers/admin_providers.dart';
 
@@ -150,6 +150,15 @@ class _AdminPoojasScreenState extends ConsumerState<AdminPoojasScreen> {
 
   void _confirmDelete(
       BuildContext context, WidgetRef ref, AdminPooja pooja) {
+    if (DemoConfig.demoMode) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(const SnackBar(
+          content: Text('Delete is disabled in demo mode.'),
+          behavior: SnackBarBehavior.floating,
+        ));
+      return;
+    }
     showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(

@@ -14,8 +14,8 @@
 //                                  check (status in ('pending','confirmed','assigned','completed','cancelled'))
 //   amount            numeric     not null
 //   created_at        timestamptz not null default now()
-//   pandit_id         text
-//   pandit_name       text
+//   pandit_id         uuid        references profiles(id)
+//   pandit_name       text        (NOT a DB column — resolved via profiles JOIN)
 //   is_paid           bool        not null default false
 //   payment_id        text
 //   notes             text
@@ -37,7 +37,6 @@
 import 'dart:math';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:uuid/uuid.dart';
 
 import '../../packages/models/package_model.dart';
 import '../models/booking_draft.dart';
@@ -113,7 +112,6 @@ class SupabaseBookingRepository implements IBookingRepository {
   SupabaseBookingRepository(this._client);
 
   final SupabaseClient _client;
-  static const _uuid = Uuid();
 
   @override
   Future<List<BookingModel>> getBookingsForUser(
@@ -125,7 +123,7 @@ class SupabaseBookingRepository implements IBookingRepository {
       final offset = page * pageSize;
       final rows = await _client
           .from('bookings')
-          .select()
+          .select('*, pandit:profiles!pandit_id(full_name)')
           .eq('user_id', userId)
           .order('created_at', ascending: false)
           .range(offset, offset + pageSize - 1);
@@ -145,7 +143,7 @@ class SupabaseBookingRepository implements IBookingRepository {
       final offset = page * pageSize;
       final rows = await _client
           .from('bookings')
-          .select()
+          .select('*, pandit:profiles!pandit_id(full_name)')
           .eq('pandit_id', panditId)
           .order('created_at', ascending: false)
           .range(offset, offset + pageSize - 1);
@@ -189,35 +187,47 @@ class SupabaseBookingRepository implements IBookingRepository {
     final date   = draft.date!;
     final pandit = draft.isAutoAssign ? null : draft.panditOption;
 
-    final row = {
-      'id':               _uuid.v4(),
-      'user_id':          userId,
-      'package_id':       pkg.id,
-      'package_title':    pkg.title,
-      'category':         pkg.category.label,
-      'booking_date':     _fmtDate(date),
-      'slot_id':          slot.id,
-      'slot':             slot.toJson(),
-      'location':
-          (draft.location ?? const BookingLocation(isOnline: true)).toJson(),
-      'status':           BookingStatus.pending.dbValue,
-      'amount':           pkg.effectivePrice,
-      'created_at':       DateTime.now().toUtc().toIso8601String(),
-      'pandit_id':        pandit?.id,
-      'pandit_name':      pandit?.name,
-      'is_paid':          false,
-      'payment_id':       null,
-      'notes':            draft.notes,
-      'is_auto_assigned': draft.isAutoAssign,
-    };
-
     try {
-      final inserted = await _client
+      // Use the create_booking RPC which holds an advisory lock on the slot,
+      // preventing race conditions that a direct INSERT cannot guard against.
+      final result = await _client.rpc('create_booking', params: {
+        'p_package_id':       pkg.id,
+        'p_special_pooja_id': null,
+        'p_package_title':    pkg.title,
+        'p_category':         pkg.category.label,
+        'p_booking_date':     _fmtDate(date),
+        'p_slot_id':          slot.id,
+        'p_slot':             slot.toJson(),
+        'p_location':
+            (draft.location ?? const BookingLocation(isOnline: true))
+                .toJson(),
+        'p_pandit_id': _toUuidOrNull(pandit?.id),
+        'p_amount':    pkg.effectivePrice,
+        'p_notes':     draft.notes,
+        'p_is_auto_assign': draft.isAutoAssign,
+      });
+
+      final data = result as Map<String, dynamic>;
+
+      if (data['error'] != null) {
+        if (data['code'] == 'SLOT_CONFLICT') {
+          throw const SlotConflictException();
+        }
+        throw BookingException(data['error'] as String);
+      }
+
+      // Fetch the full row (with pandit profile join) for the domain model.
+      final bookingId = data['booking_id'] as String;
+      final fetched = await _client
           .from('bookings')
-          .insert(row)
-          .select()
+          .select('*, pandit:profiles!pandit_id(full_name)')
+          .eq('id', bookingId)
           .single();
-      return _rowToModel(inserted);
+      return _rowToModel(fetched);
+    } on SlotConflictException {
+      rethrow;
+    } on BookingException {
+      rethrow;
     } on PostgrestException catch (e) {
       if (e.code == '23505') throw const SlotConflictException();
       throw BookingException('Failed to create booking: ${e.message}');
@@ -226,32 +236,7 @@ class SupabaseBookingRepository implements IBookingRepository {
 
   @override
   Future<BookingModel> cancelBooking(String bookingId) async {
-    try {
-      // Read current status to validate transition (RLS allows the user's own row).
-      final existing = await _client
-          .from('bookings')
-          .select('status')
-          .eq('id', bookingId)
-          .single();
-
-      final current = BookingStatusX.fromDb(existing['status'] as String);
-      if (current.isFinal) {
-        throw const BookingException(
-            'Cannot cancel a completed or already-cancelled booking.');
-      }
-
-      final updated = await _client
-          .from('bookings')
-          .update({'status': BookingStatus.cancelled.dbValue})
-          .eq('id', bookingId)
-          .select()
-          .single();
-      return _rowToModel(updated);
-    } on BookingException {
-      rethrow;
-    } on PostgrestException catch (e) {
-      throw BookingException('Failed to cancel booking: ${e.message}');
-    }
+    return _rpcUpdateStatus(bookingId, BookingStatus.cancelled);
   }
 
   @override
@@ -259,14 +244,33 @@ class SupabaseBookingRepository implements IBookingRepository {
     String bookingId,
     BookingStatus status,
   ) async {
+    return _rpcUpdateStatus(bookingId, status);
+  }
+
+  /// Calls the server-authoritative [update_booking_status] RPC which
+  /// enforces role-based state machine transitions.
+  Future<BookingModel> _rpcUpdateStatus(
+      String bookingId, BookingStatus newStatus) async {
     try {
-      final updated = await _client
+      final result = await _client.rpc('update_booking_status', params: {
+        'p_booking_id': bookingId,
+        'p_new_status': newStatus.dbValue,
+      });
+
+      final data = result as Map<String, dynamic>;
+      if (data['error'] != null) {
+        throw BookingException(data['error'] as String);
+      }
+
+      // Fetch updated row (with pandit join) so caller gets full BookingModel.
+      final fetched = await _client
           .from('bookings')
-          .update({'status': status.dbValue})
+          .select('*, pandit:profiles!pandit_id(full_name)')
           .eq('id', bookingId)
-          .select()
           .single();
-      return _rowToModel(updated);
+      return _rowToModel(fetched);
+    } on BookingException {
+      rethrow;
     } on PostgrestException catch (e) {
       throw BookingException(
           'Failed to update booking status: ${e.message}');
@@ -276,18 +280,42 @@ class SupabaseBookingRepository implements IBookingRepository {
   // ── Helpers ────────────────────────────────────────────────────────────────
 
   /// Maps a raw Supabase row to [BookingModel].
+  /// The [pandit] key is the result of the profiles join:
+  ///   `.select('*, pandit:profiles!pandit_id(full_name)')`
   static BookingModel _rowToModel(Map<String, dynamic> row) {
     try {
-      return BookingModel.fromJson(row);
+      // Extract pandit name from the joined profiles row (if present).
+      final panditJoin = row['pandit'] as Map<String, dynamic>?;
+      final panditName = panditJoin?['full_name'] as String?;
+      // Build a clean row without the nested join object so fromJson
+      // doesn't trip over the unexpected key.
+      final cleanRow = Map<String, dynamic>.from(row)
+        ..remove('pandit')
+        ..['pandit_name'] = panditName;
+      return BookingModel.fromJson(cleanRow);
     } catch (e, st) {
-      // ignore: avoid_print
-      print('⛔ _rowToModel failed: $e\nRow: $row\n$st');
+      // Silently rethrow — no console output in production.
+      assert(() {
+        // Only log in debug mode.
+        // ignore: avoid_print
+        print('⛔ _rowToModel failed: $e\nRow: $row\n$st');
+        return true;
+      }());
       rethrow;
     }
   }
 
   static String _fmtDate(DateTime d) =>
       '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
+  /// Returns [id] only when it is a well-formed UUID v4; otherwise null.
+  /// Prevents short mock IDs (e.g. "p001") from reaching a uuid-typed column.
+  static String? _toUuidOrNull(String? id) {
+    if (id == null) return null;
+    const uuidPattern =
+        r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$';
+    return RegExp(uuidPattern, caseSensitive: false).hasMatch(id) ? id : null;
+  }
 }
 
 // ── MockBookingRepository ─────────────────────────────────────────────────────

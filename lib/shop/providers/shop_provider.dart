@@ -2,18 +2,21 @@
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/providers/supabase_provider.dart';
 import '../controllers/shop_controller.dart';
 import '../models/cart_item.dart';
 import '../models/product_model.dart';
 import '../repository/shop_repository.dart';
+import '../repository/supabase_shop_repository.dart';
 
 // ── Repository ────────────────────────────────────────────────────────────────
 
-/// Swap [MockProductRepository] → real API repository without touching
-/// controllers or screens.
-final productRepositoryProvider = Provider<IProductRepository>(
-  (ref) => MockProductRepository(),
-);
+/// Production Supabase product repository.
+/// Override with [MockProductRepository] in tests or offline dev:
+///   productRepositoryProvider.overrideWithValue(MockProductRepository())
+final productRepositoryProvider = Provider<IProductRepository>((ref) {
+  return SupabaseShopRepository(ref.watch(supabaseClientProvider));
+});
 
 // ── Shop (product listing) ────────────────────────────────────────────────────
 

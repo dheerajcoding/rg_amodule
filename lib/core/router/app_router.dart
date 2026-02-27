@@ -1,3 +1,4 @@
+// ignore_for_file: avoid_redundant_argument_values
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -9,11 +10,9 @@ import '../../auth/screens/signup_screen.dart';
 import '../../home/screens/home_screen.dart';
 import '../../packages/screens/packages_screen.dart';
 import '../../packages/screens/package_detail_screen.dart';
-import '../../booking/screens/booking_screen.dart';
 import '../../booking/screens/booking_wizard_screen.dart';
 import '../../booking/screens/booking_detail_screen.dart';
 import '../../booking/screens/proof_upload_screen.dart';
-import '../../consultation/screens/consultation_screen.dart';
 import '../../consultation/screens/chat_screen.dart';
 import '../../consultation/models/consultation_session.dart';
 import '../../shop/screens/shop_screen.dart';
@@ -26,135 +25,129 @@ import '../../admin/screens/admin_pandits_screen.dart';
 import '../../admin/screens/admin_bookings_screen.dart';
 import '../../admin/screens/admin_consultations_screen.dart';
 import '../../admin/screens/admin_reports_screen.dart';
-import '../../pandit/screens/pandit_screen.dart';
 import '../../pandit/screens/pandit_booking_detail_screen.dart';
-import '../../services/screens/services_screen.dart';
-import '../../splash/splash_screen.dart';
-import '../../widgets/bottom_nav_shell.dart';
+import '../../special_poojas/screens/special_poojas_screen.dart';
+import '../../special_poojas/screens/special_pooja_detail_screen.dart';
+import '../../account/screens/account_screen.dart';
 import '../../models/role_enum.dart';
+import '../../widgets/bottom_nav_shell.dart';
 
 // ── Route path constants ───────────────────────────────────────────────────────
 abstract class Routes {
+  // Shell tabs
+  static const home = '/home';
+  static const packages = '/packages';
+  static const specialPoojas = '/special';
+  static const shop = '/shop';
+  static const account = '/account';
+
+  // Auth
   static const splash = '/';
   static const login = '/login';
   static const signup = '/signup';
-  static const register = '/register'; // kept for backward-compat, redirects to signup
-  static const home = '/home';
-  static const packages = '/packages';
-  static const booking = '/booking';
-  static const consultation = '/consultation';
-  static const consultationChat = '/consultation/chat';
-  static const shop = '/shop';
-  static const productDetail = '/shop/product/:id';
-  static const cart = '/shop/cart';
-  static const checkout = '/shop/checkout';
-  static const admin = '/admin';
-  static const adminPoojas = '/admin/poojas';
-  static const adminPandits = '/admin/pandits';
-  static const adminBookings = '/admin/bookings';
-  static const adminConsultations = '/admin/consultations';
-  static const adminReports = '/admin/reports';
-  static const pandit = '/pandit';
-  static const panditBookingDetail = '/pandit/booking/:id';
-  static const services = '/services';
-  static const packageDetail = '/packages/:id';
+
+  // Booking (modal / push routes, outside shell)
   static const bookingWizard = '/booking/wizard';
   static const bookingDetail = '/booking/:id';
   static const bookingUploadProof = '/booking/:id/upload-proof';
+
+  // Consultation chat (modal)
+  static const consultationChat = '/consultation/chat';
+
+  // Shop sub-routes
+  static const productDetail = '/shop/product/:id';
+  static const cart = '/shop/cart';
+  static const checkout = '/shop/checkout';
+
+  // Admin sub-routes (nested under /account/admin)
+  static const adminBase = '/account/admin';
+  static const adminPoojas = '/account/admin/poojas';
+  static const adminPandits = '/account/admin/pandits';
+  static const adminBookings = '/account/admin/bookings';
+  static const adminConsultations = '/account/admin/consultations';
+  static const adminReports = '/account/admin/reports';
+
+  // Pandit booking detail (nested under /account/pandit)
+  static const panditBookingDetail = '/account/pandit/booking/:id';
 }
 
-// ── RouterNotifier (ChangeNotifier that drives GoRouter refresh) ───────────────
+// ── RouterNotifier ──────────────────────────────────────────────────────────
 class RouterNotifier extends ChangeNotifier {
   RouterNotifier(this._ref) {
-    // Listen to auth state changes and notify GoRouter to re-evaluate redirects.
-    _ref.listen<AuthState>(authProvider, (_, _) => notifyListeners());
+    _ref.listen<AuthState>(authProvider, (_, __) => notifyListeners());
   }
 
   final Ref _ref;
 
-  /// Central redirect logic called on every navigation event.
   String? redirect(BuildContext context, GoRouterState state) {
     final authState = _ref.read(authProvider);
     final location = state.matchedLocation;
 
-    final bool isOnSplash = location == Routes.splash;
-    final bool isOnAuth = location.startsWith(Routes.login) ||
-        location.startsWith(Routes.signup) ||
-        location.startsWith(Routes.register);
+    final isOnAuth = location == Routes.login || location == Routes.signup;
+    final isOnSplash = location == Routes.splash;
 
-    // ── 1. Still initialising (checking persisted session) ─────────────────
-    if (authState is AuthInitial || authState is AuthLoading) {
-      return isOnSplash ? null : Routes.splash;
+    switch (authState) {
+      case AuthInitial() || AuthLoading():
+        return isOnSplash ? null : Routes.splash;
+
+      case AuthEmailConfirmationPending():
+        return isOnAuth ? null : Routes.login;
+
+      case AuthUnauthenticated() || AuthError():
+        if (isOnAuth) return null;
+        return Routes.login;
+
+      case AuthAuthenticated(user: final user):
+        if (isOnSplash || isOnAuth) return Routes.home;
+
+        // Block non-admin from admin routes
+        if (location.startsWith('/account/admin') && user.role != UserRole.admin) {
+          return Routes.account;
+        }
+        // Block non-pandit from pandit routes (unless admin)
+        if (location.startsWith('/account/pandit') &&
+            user.role != UserRole.pandit &&
+            user.role != UserRole.admin) {
+          return Routes.account;
+        }
+        return null;
+      default:
+        return null;
     }
-
-    // ── 2. Email confirmation pending — stay on auth screen ────────────────
-    if (authState is AuthEmailConfirmationPending) {
-      return isOnAuth ? null : Routes.login;
-    }
-
-    // ── 3. Unauthenticated or Error — always send to login ─────────────────
-    if (authState is AuthUnauthenticated || authState is AuthError) {
-      if (isOnAuth) return null; // already on login/signup
-      return Routes.login;       // from splash or any other screen → login
-    }
-
-    // ── 4. Authenticated ───────────────────────────────────────────────────────────
-    if (authState is AuthAuthenticated) {
-      // Redirect away from splash / auth screens
-      if (isOnSplash || isOnAuth) return Routes.home;
-
-      final user = authState.user;
-
-      // Admin guard
-      if (location.startsWith(Routes.admin) && !user.role.isAdmin) {
-        return Routes.home;
-      }
-
-      // Pandit guard (admin may also view pandit dashboard)
-      if (location.startsWith(Routes.pandit) &&
-          !user.role.isPandit &&
-          !user.role.isAdmin) {
-        return Routes.home;
-      }
-
-      return null; // allow navigation
-    }
-
-    return null;
   }
 }
 
 // ── Bottom-nav destination config ────────────────────────────────────────────
-final _navDestinations = [
-  const NavDestination(
+const _navDestinations = [
+  NavDestination(
     label: 'Home',
-    icon: Icon(Icons.home_outlined),
-    activeIcon: Icon(Icons.home),
+    icon: Icons.home_outlined,
+    activeIcon: Icons.home,
     initialLocation: Routes.home,
   ),
-  const NavDestination(
-    label: 'Packages',
-    icon: Icon(Icons.folder_outlined),
-    activeIcon: Icon(Icons.folder),
+  NavDestination(
+    label: 'Poojas',
+    icon: Icons.spa_outlined,
+    activeIcon: Icons.spa,
     initialLocation: Routes.packages,
   ),
-  const NavDestination(
-    label: 'Booking',
-    icon: Icon(Icons.calendar_today_outlined),
-    activeIcon: Icon(Icons.calendar_today),
-    initialLocation: Routes.booking,
+  NavDestination(
+    label: 'Special',
+    icon: Icons.auto_awesome_outlined,
+    activeIcon: Icons.auto_awesome,
+    initialLocation: Routes.specialPoojas,
   ),
-  const NavDestination(
-    label: 'Consult',
-    icon: Icon(Icons.video_call_outlined),
-    activeIcon: Icon(Icons.video_call),
-    initialLocation: Routes.consultation,
-  ),
-  const NavDestination(
+  NavDestination(
     label: 'Shop',
-    icon: Icon(Icons.store_outlined),
-    activeIcon: Icon(Icons.store),
+    icon: Icons.shopping_bag_outlined,
+    activeIcon: Icons.shopping_bag,
     initialLocation: Routes.shop,
+  ),
+  NavDestination(
+    label: 'Account',
+    icon: Icons.person_outline,
+    activeIcon: Icons.person,
+    initialLocation: Routes.account,
   ),
 ];
 
@@ -164,7 +157,7 @@ final routerProvider = Provider<GoRouter>((ref) {
 
   return GoRouter(
     initialLocation: Routes.splash,
-    debugLogDiagnostics: true,
+    debugLogDiagnostics: false,
     refreshListenable: notifier,
     redirect: notifier.redirect,
     routes: [
@@ -172,7 +165,11 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: Routes.splash,
         name: 'splash',
-        builder: (_, _) => const SplashScreen(),
+        pageBuilder: (_, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const _SplashPage(),
+          transitionsBuilder: _fadeTransition,
+        ),
       ),
 
       // ── Auth ──────────────────────────────────────────────────────────────
@@ -182,7 +179,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         pageBuilder: (_, state) => CustomTransitionPage(
           key: state.pageKey,
           child: const LoginScreen(),
-          transitionsBuilder: _fadeTransition,
+          transitionsBuilder: _slideUpTransition,
         ),
       ),
       GoRoute(
@@ -194,200 +191,30 @@ final routerProvider = Provider<GoRouter>((ref) {
           transitionsBuilder: _slideUpTransition,
         ),
       ),
-      // Legacy alias → redirect to /signup
-      GoRoute(
-        path: Routes.register,
-        name: 'register',
-        redirect: (_, _) => Routes.signup,
-      ),
 
-      // ── Main Shell (Bottom Navigation) ────────────────────────────────────
-      StatefulShellRoute.indexedStack(
-        builder: (context, state, navigationShell) => BottomNavShell(
-          navigationShell: navigationShell,
-          destinations: _navDestinations,
-        ),
-        branches: [
-          // Home
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: Routes.home,
-                name: 'home',
-                builder: (_, _) => const HomeScreen(),
-              ),
-            ],
-          ),
-          // Packages
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: Routes.packages,
-                name: 'packages',
-                builder: (_, _) => const PackagesScreen(),
-              ),
-            ],
-          ),
-          // Booking
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: Routes.booking,
-                name: 'booking',
-                builder: (_, _) => const BookingScreen(),
-              ),
-            ],
-          ),
-          // Consultation
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: Routes.consultation,
-                name: 'consultation',
-                builder: (_, _) => const ConsultationScreen(),
-              ),
-            ],
-          ),
-          // Shop
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: Routes.shop,
-                name: 'shop',
-                builder: (_, _) => const ShopScreen(),
-              ),
-            ],
-          ),
-        ],
-      ),
-
-      // ── Services (outside shell, accessible from Home) ────────────────────
-      GoRoute(
-        path: Routes.services,
-        name: 'services',
-        pageBuilder: (_, state) => CustomTransitionPage(
-          key: state.pageKey,
-          child: const ServicesScreen(),
-          transitionsBuilder: _slideRightTransition,
-        ),
-      ),
-
-      // ── Admin (role-guarded) ──────────────────────────────────────────────
-      GoRoute(
-        path: Routes.admin,
-        name: 'admin',
-        pageBuilder: (_, state) => CustomTransitionPage(
-          key: state.pageKey,
-          child: const AdminScreen(),
-          transitionsBuilder: _slideRightTransition,
-        ),
-      ),
-      GoRoute(
-        path: Routes.adminPoojas,
-        name: 'admin-poojas',
-        pageBuilder: (_, state) => CustomTransitionPage(
-          key: state.pageKey,
-          child: const AdminPoojasScreen(),
-          transitionsBuilder: _slideRightTransition,
-        ),
-      ),
-      GoRoute(
-        path: Routes.adminPandits,
-        name: 'admin-pandits',
-        pageBuilder: (_, state) => CustomTransitionPage(
-          key: state.pageKey,
-          child: const AdminPanditsScreen(),
-          transitionsBuilder: _slideRightTransition,
-        ),
-      ),
-      GoRoute(
-        path: Routes.adminBookings,
-        name: 'admin-bookings',
-        pageBuilder: (_, state) => CustomTransitionPage(
-          key: state.pageKey,
-          child: const AdminBookingsScreen(),
-          transitionsBuilder: _slideRightTransition,
-        ),
-      ),
-      GoRoute(
-        path: Routes.adminConsultations,
-        name: 'admin-consultations',
-        pageBuilder: (_, state) => CustomTransitionPage(
-          key: state.pageKey,
-          child: const AdminConsultationsScreen(),
-          transitionsBuilder: _slideRightTransition,
-        ),
-      ),
-      GoRoute(
-        path: Routes.adminReports,
-        name: 'admin-reports',
-        pageBuilder: (_, state) => CustomTransitionPage(
-          key: state.pageKey,
-          child: const AdminReportsScreen(),
-          transitionsBuilder: _slideRightTransition,
-        ),
-      ),
-
-      // ── Pandit (role-guarded) ─────────────────────────────────────────────
-      GoRoute(
-        path: Routes.pandit,
-        name: 'pandit',
-        pageBuilder: (_, state) => CustomTransitionPage(
-          key: state.pageKey,
-          child: const PanditScreen(),
-          transitionsBuilder: _slideRightTransition,
-        ),
-      ),
-      // ── Pandit booking detail ─────────────────────────────────────────────
-      GoRoute(
-        path: '/pandit/booking/:id',
-        name: 'pandit-booking-detail',
-        pageBuilder: (_, state) => CustomTransitionPage(
-          key: state.pageKey,
-          child: PanditBookingDetailScreen(
-            bookingId: state.pathParameters['id']!,
-          ),
-          transitionsBuilder: _slideRightTransition,
-        ),
-      ),
-      // ── Package detail ────────────────────────────────────────────────────
-      GoRoute(
-        path: '/packages/:id',
-        name: 'package-detail',
-        pageBuilder: (_, state) => CustomTransitionPage(
-          key: state.pageKey,
-          child: PackageDetailScreen(
-            packageId: state.pathParameters['id']!,
-          ),
-          transitionsBuilder: _slideRightTransition,
-        ),
-      ),
-
-      // ── Booking wizard ────────────────────────────────────────────────────
+      // ── Booking Wizard (modal, above shell) ───────────────────────────────
       GoRoute(
         path: Routes.bookingWizard,
         name: 'booking-wizard',
         pageBuilder: (_, state) => CustomTransitionPage(
           key: state.pageKey,
-          child: const BookingWizardScreen(),
+          child: BookingWizardScreen(
+            preSelectedPackage: state.extra as dynamic,
+          ),
           transitionsBuilder: _slideUpTransition,
         ),
       ),
 
-      // ── Booking detail ────────────────────────────────────────────────────
+      // ── Booking Detail + Proof Upload ─────────────────────────────────────
       GoRoute(
         path: '/booking/:id',
         name: 'booking-detail',
         pageBuilder: (_, state) => CustomTransitionPage(
           key: state.pageKey,
-          child: BookingDetailScreen(
-            bookingId: state.pathParameters['id']!,
-          ),
+          child: BookingDetailScreen(bookingId: state.pathParameters['id']!),
           transitionsBuilder: _slideRightTransition,
         ),
       ),
-
-      // ── Upload proof ──────────────────────────────────────────────────────
       GoRoute(
         path: '/booking/:id/upload-proof',
         name: 'booking-upload-proof',
@@ -395,63 +222,207 @@ final routerProvider = Provider<GoRouter>((ref) {
           key: state.pageKey,
           child: ProofUploadScreen(
             bookingId: state.pathParameters['id']!,
-            panditId: (state.extra as Map?)?['panditId'] as String? ?? 'mock_pandit',
+            panditId: (state.extra as Map?)?['panditId'] as String? ?? '',
             bookingTitle: (state.extra as Map?)?['title'] as String? ?? 'Service',
           ),
           transitionsBuilder: _slideUpTransition,
         ),
       ),
 
-      // ── Shop: product detail ─────────────────────────────────────────────────
+      // ── Consultation Chat (modal) ─────────────────────────────────────────
       GoRoute(
-        path: '/shop/product/:id',
-        name: 'product-detail',
-        pageBuilder: (_, state) => CustomTransitionPage(
-          key: state.pageKey,
-          child: ProductDetailScreen(
-            productId: state.pathParameters['id']!,
-          ),
-          transitionsBuilder: _slideRightTransition,
-        ),
-      ),
-
-      // ── Shop: cart ────────────────────────────────────────────────────────────
-      GoRoute(
-        path: '/shop/cart',
-        name: 'cart',
-        pageBuilder: (_, state) => CustomTransitionPage(
-          key: state.pageKey,
-          child: const CartScreen(),
-          transitionsBuilder: _slideRightTransition,
-        ),
-      ),
-
-      // ── Shop: checkout ────────────────────────────────────────────────────────
-      GoRoute(
-        path: '/shop/checkout',
-        name: 'checkout',
-        pageBuilder: (_, state) => CustomTransitionPage(
-          key: state.pageKey,
-          child: const CheckoutScreen(),
-          transitionsBuilder: _slideUpTransition,
-        ),
-      ),
-
-      // ── Consultation chat session ───────────────────────────────────────────
-      GoRoute(
-        path: '/consultation/chat',
+        path: Routes.consultationChat,
         name: 'consultation-chat',
         pageBuilder: (_, state) => CustomTransitionPage(
           key: state.pageKey,
-          child: ChatScreen(
-            session: state.extra as ConsultationSession,
-          ),
+          child: ChatScreen(session: state.extra as ConsultationSession),
           transitionsBuilder: _slideUpTransition,
         ),
       ),
+
+      // ── Main Shell: 5 Bottom-Tab Branches ─────────────────────────────────
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) => BottomNavShell(
+          navigationShell: navigationShell,
+          destinations: _navDestinations,
+        ),
+        branches: [
+          // ── Tab 1: Home ─────────────────────────────────────────────────
+          StatefulShellBranch(routes: [
+            GoRoute(
+              path: Routes.home,
+              name: 'home',
+              builder: (_, __) => const HomeScreen(),
+            ),
+          ]),
+
+          // ── Tab 2: Pooja Packages ────────────────────────────────────────
+          StatefulShellBranch(routes: [
+            GoRoute(
+              path: Routes.packages,
+              name: 'packages',
+              builder: (_, __) => const PackagesScreen(),
+              routes: [
+                GoRoute(
+                  path: ':id',
+                  name: 'package-detail',
+                  pageBuilder: (_, state) => CustomTransitionPage(
+                    key: state.pageKey,
+                    child: PackageDetailScreen(
+                      packageId: state.pathParameters['id']!,
+                    ),
+                    transitionsBuilder: _slideRightTransition,
+                  ),
+                ),
+              ],
+            ),
+          ]),
+
+          // ── Tab 3: Special Poojas ────────────────────────────────────────
+          StatefulShellBranch(routes: [
+            GoRoute(
+              path: Routes.specialPoojas,
+              name: 'special-poojas',
+              builder: (_, __) => const SpecialPoojasScreen(),
+              routes: [
+                GoRoute(
+                  path: ':id',
+                  name: 'special-pooja-detail',
+                  pageBuilder: (_, state) => CustomTransitionPage(
+                    key: state.pageKey,
+                    child: SpecialPoojaDetailScreen(
+                      poojaId: state.pathParameters['id']!,
+                    ),
+                    transitionsBuilder: _slideRightTransition,
+                  ),
+                ),
+              ],
+            ),
+          ]),
+
+          // ── Tab 4: Shop ──────────────────────────────────────────────────
+          StatefulShellBranch(routes: [
+            GoRoute(
+              path: Routes.shop,
+              name: 'shop',
+              builder: (_, __) => const ShopScreen(),
+              routes: [
+                GoRoute(
+                  path: 'product/:id',
+                  name: 'product-detail',
+                  pageBuilder: (_, state) => CustomTransitionPage(
+                    key: state.pageKey,
+                    child: ProductDetailScreen(
+                      productId: state.pathParameters['id']!,
+                    ),
+                    transitionsBuilder: _slideRightTransition,
+                  ),
+                ),
+                GoRoute(
+                  path: 'cart',
+                  name: 'cart',
+                  pageBuilder: (_, state) => CustomTransitionPage(
+                    key: state.pageKey,
+                    child: const CartScreen(),
+                    transitionsBuilder: _slideRightTransition,
+                  ),
+                ),
+                GoRoute(
+                  path: 'checkout',
+                  name: 'checkout',
+                  pageBuilder: (_, state) => CustomTransitionPage(
+                    key: state.pageKey,
+                    child: const CheckoutScreen(),
+                    transitionsBuilder: _slideUpTransition,
+                  ),
+                ),
+              ],
+            ),
+          ]),
+
+          // ── Tab 5: Account (role-adaptive) ──────────────────────────────
+          StatefulShellBranch(routes: [
+            GoRoute(
+              path: Routes.account,
+              name: 'account',
+              builder: (_, __) => const AccountScreen(),
+              routes: [
+                // Admin sub-routes
+                GoRoute(
+                  path: 'admin',
+                  name: 'admin',
+                  pageBuilder: (_, state) => CustomTransitionPage(
+                    key: state.pageKey,
+                    child: const AdminScreen(),
+                    transitionsBuilder: _slideRightTransition,
+                  ),
+                  routes: [
+                    GoRoute(
+                      path: 'poojas',
+                      name: 'admin-poojas',
+                      pageBuilder: (_, state) => CustomTransitionPage(
+                        key: state.pageKey,
+                        child: const AdminPoojasScreen(),
+                        transitionsBuilder: _slideRightTransition,
+                      ),
+                    ),
+                    GoRoute(
+                      path: 'pandits',
+                      name: 'admin-pandits',
+                      pageBuilder: (_, state) => CustomTransitionPage(
+                        key: state.pageKey,
+                        child: const AdminPanditsScreen(),
+                        transitionsBuilder: _slideRightTransition,
+                      ),
+                    ),
+                    GoRoute(
+                      path: 'bookings',
+                      name: 'admin-bookings',
+                      pageBuilder: (_, state) => CustomTransitionPage(
+                        key: state.pageKey,
+                        child: const AdminBookingsScreen(),
+                        transitionsBuilder: _slideRightTransition,
+                      ),
+                    ),
+                    GoRoute(
+                      path: 'consultations',
+                      name: 'admin-consultations',
+                      pageBuilder: (_, state) => CustomTransitionPage(
+                        key: state.pageKey,
+                        child: const AdminConsultationsScreen(),
+                        transitionsBuilder: _slideRightTransition,
+                      ),
+                    ),
+                    GoRoute(
+                      path: 'reports',
+                      name: 'admin-reports',
+                      pageBuilder: (_, state) => CustomTransitionPage(
+                        key: state.pageKey,
+                        child: const AdminReportsScreen(),
+                        transitionsBuilder: _slideRightTransition,
+                      ),
+                    ),
+                  ],
+                ),
+                // Pandit booking detail
+                GoRoute(
+                  path: 'pandit/booking/:id',
+                  name: 'pandit-booking-detail',
+                  pageBuilder: (_, state) => CustomTransitionPage(
+                    key: state.pageKey,
+                    child: PanditBookingDetailScreen(
+                      bookingId: state.pathParameters['id']!,
+                    ),
+                    transitionsBuilder: _slideRightTransition,
+                  ),
+                ),
+              ],
+            ),
+          ]),
+        ],
+      ),
     ],
 
-    // Global error page
     errorBuilder: (context, state) => Scaffold(
       body: Center(
         child: Column(
@@ -459,8 +430,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           children: [
             const Icon(Icons.error_outline, size: 64, color: Colors.red),
             const SizedBox(height: 16),
-            Text('Page not found: ${state.uri.path}',
-                textAlign: TextAlign.center),
+            Text(
+              'Page not found:\n${state.uri.path}',
+              textAlign: TextAlign.center,
+            ),
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: () => context.go(Routes.home),
@@ -472,6 +445,61 @@ final routerProvider = Provider<GoRouter>((ref) {
     ),
   );
 });
+
+// ── Minimal splash widget ─────────────────────────────────────────────────────
+class _SplashPage extends StatelessWidget {
+  const _SplashPage();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFFF6B35),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 100,
+              height: 100,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: const Icon(
+                Icons.self_improvement,
+                size: 56,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              'Divine Pooja',
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+                letterSpacing: 0.5,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Your Spiritual Marketplace',
+              style: TextStyle(
+                fontSize: 15,
+                color: Colors.white.withOpacity(0.8),
+              ),
+            ),
+            const SizedBox(height: 48),
+            const CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.white70),
+              strokeWidth: 2,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
 // ── Page Transition Helpers ───────────────────────────────────────────────────
 Widget _fadeTransition(
@@ -492,7 +520,7 @@ Widget _slideUpTransition(
       position: Tween<Offset>(
         begin: const Offset(0, 1),
         end: Offset.zero,
-      ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOut)),
+      ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic)),
       child: child,
     );
 
@@ -506,6 +534,6 @@ Widget _slideRightTransition(
       position: Tween<Offset>(
         begin: const Offset(1, 0),
         end: Offset.zero,
-      ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOut)),
+      ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic)),
       child: child,
     );

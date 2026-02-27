@@ -1,82 +1,131 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../core/theme/app_colors.dart';
-import '../core/constants/app_strings.dart';
 
-/// Splash screen – shown while the app checks persisted auth session.
-/// Automatically navigates via go_router redirect once [AuthState] resolves.
+/// Premium DivinePooja splash screen.
+/// Navigated away from automatically via go_router redirect once auth resolves.
 class SplashScreen extends ConsumerWidget {
   const SplashScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // The router's redirect handles navigation once the state changes.
-    // This screen only renders the loading UI.
     return Scaffold(
-      backgroundColor: AppColors.primary,
-      body: SafeArea(
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF1A0A02), Color(0xFF3D1500), Color(0xFF7C3000)],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: SafeArea(
+          child: Stack(
             children: [
-              // App icon
-              Container(
-                width: 100,
-                height: 100,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(24),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.2),
-                      blurRadius: 20,
-                      offset: const Offset(0, 8),
+              // ── Decorative gold circles ──────────────────────────────────
+              Positioned(
+                top: -60,
+                right: -60,
+                child: Container(
+                  width: 220,
+                  height: 220,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppColors.gold.withValues(alpha: 0.08),
+                  ),
+                ),
+              ),
+              Positioned(
+                bottom: 80,
+                left: -80,
+                child: Container(
+                  width: 280,
+                  height: 280,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppColors.primary.withValues(alpha: 0.10),
+                  ),
+                ),
+              ),
+
+              // ── Center content ───────────────────────────────────────────
+              Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Logo container
+                    Container(
+                      width: 110,
+                      height: 110,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFFD4611A), Color(0xFFBF9B30)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(28),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.primary.withValues(alpha: 0.50),
+                            blurRadius: 28,
+                            offset: const Offset(0, 10),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.auto_awesome,
+                        color: Colors.white,
+                        size: 52,
+                      ),
+                    ),
+                    const SizedBox(height: 28),
+
+                    // App name — Playfair Display
+                    Text(
+                      'DivinePooja',
+                      style: GoogleFonts.playfairDisplay(
+                        color: Colors.white,
+                        fontSize: 34,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+
+                    // Tagline
+                    Text(
+                      'Your Spiritual Marketplace',
+                      style: GoogleFonts.inter(
+                        color: AppColors.gold.withValues(alpha: 0.85),
+                        fontSize: 14,
+                        letterSpacing: 1.0,
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
+                    const SizedBox(height: 70),
+
+                    // Loader
+                    SizedBox(
+                      width: 32,
+                      height: 32,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          AppColors.gold.withValues(alpha: 0.7),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    Text(
+                      'Loading…',
+                      style: GoogleFonts.inter(
+                        color: Colors.white38,
+                        fontSize: 13,
+                      ),
                     ),
                   ],
                 ),
-                child: const Icon(
-                  Icons.self_improvement,
-                  color: AppColors.primary,
-                  size: 56,
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              // App name
-              const Text(
-                AppStrings.appName,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.2,
-                ),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Your Spiritual Marketplace',
-                style: TextStyle(
-                  color: Colors.white70,
-                  fontSize: 14,
-                  letterSpacing: 0.5,
-                ),
-              ),
-              const SizedBox(height: 60),
-
-              // Loader
-              const SizedBox(
-                width: 36,
-                height: 36,
-                child: CircularProgressIndicator(
-                  strokeWidth: 3,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white70),
-                ),
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                AppStrings.loading,
-                style: TextStyle(color: Colors.white54, fontSize: 13),
               ),
             ],
           ),

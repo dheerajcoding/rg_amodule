@@ -4,12 +4,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../controllers/admin_controller.dart';
 import '../models/admin_models.dart';
 import '../repository/admin_repository.dart';
+import '../repository/supabase_admin_repository.dart';
+import '../../core/providers/supabase_provider.dart';
 
 // ── Repository ────────────────────────────────────────────────────────────────
 
-final adminRepositoryProvider = Provider<IAdminRepository>(
-  (_) => MockAdminRepository(),
-);
+final adminRepositoryProvider = Provider<IAdminRepository>((ref) {
+  return SupabaseAdminRepository(ref.watch(supabaseClientProvider));
+});
 
 // ── Main dashboard provider ───────────────────────────────────────────────────
 

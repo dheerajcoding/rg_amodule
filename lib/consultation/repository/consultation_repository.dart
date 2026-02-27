@@ -29,6 +29,15 @@ import '../models/pandit_model.dart';
 
 /// Abstract repository — the only contract controllers depend on.
 abstract class ISessionRepository {
+  /// Creates the consultation row in DB and returns a ready [ConsultationSession].
+  /// Must be called before [connect].
+  Future<ConsultationSession> startSession({
+    required PanditModel pandit,
+    required ConsultationRate rate,
+    required String userId,
+    required String userName,
+  });
+
   /// Returns a broadcast stream of [SessionEvent]s for the given session.
   /// In production: establishes and returns a WebSocket channel stream.
   Stream<SessionEvent> connect(ConsultationSession session);
@@ -37,10 +46,16 @@ abstract class ISessionRepository {
   Future<void> sendMessage(String sessionId, String text, String senderId);
 
   /// Request session extension (adds [addMinutes] minutes, triggers payment).
-  Future<void> extendSession(String sessionId, int addMinutes);
+  /// Returns the new canonical [duration_minutes] as confirmed by the server.
+  Future<int> extendSession(String sessionId, int addMinutes);
 
   /// Gracefully terminate the session.
   Future<void> endSession(String sessionId);
+
+  /// Fetch live server state for a session: {consumed_minutes, duration_minutes, status}.
+  /// Returns null if the session row does not exist.
+  /// Used to re-sync the local countdown after the app was backgrounded.
+  Future<Map<String, dynamic>?> fetchSessionStatus(String sessionId);
 
   /// Dispose all resources for [sessionId].
   void dispose(String sessionId);
@@ -58,6 +73,22 @@ abstract class IPanditRepository {
 /// Swap with `WsSessionRepository` to go live.
 class MockSessionRepository implements ISessionRepository {
   final Map<String, StreamController<SessionEvent>> _controllers = {};
+
+  @override
+  Future<ConsultationSession> startSession({
+    required PanditModel pandit,
+    required ConsultationRate rate,
+    required String userId,
+    required String userName,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 500));
+    return ConsultationSession.create(
+      pandit: pandit,
+      rate: rate,
+      userId: userId,
+      userName: userName,
+    );
+  }
 
   @override
   Stream<SessionEvent> connect(ConsultationSession session) {
@@ -132,11 +163,14 @@ class MockSessionRepository implements ISessionRepository {
   }
 
   @override
-  Future<void> extendSession(String sessionId, int addMinutes) async {
+  Future<int> extendSession(String sessionId, int addMinutes) async {
     await Future.delayed(const Duration(milliseconds: 500));
     final ctrl = _controllers[sessionId];
-    if (ctrl == null || ctrl.isClosed) return;
-    ctrl.add(SessionExtendedEvent(addedSeconds: addMinutes * 60));
+    if (ctrl != null && !ctrl.isClosed) {
+      ctrl.add(SessionExtendedEvent(addedSeconds: addMinutes * 60));
+    }
+    // Mock returns a plausible new total (base 15 min + all extensions).
+    return 15 + addMinutes;
   }
 
   @override
@@ -146,6 +180,13 @@ class MockSessionRepository implements ISessionRepository {
     ctrl.add(const SessionEndedEvent(reason: 'user_ended'));
     await Future.delayed(const Duration(milliseconds: 200));
     dispose(sessionId);
+  }
+
+  /// Mock always returns "session is active with 0 consumed minutes" —
+  /// the real implementation queries the consultations table.
+  @override
+  Future<Map<String, dynamic>?> fetchSessionStatus(String sessionId) async {
+    return const {'status': 'active', 'consumed_minutes': 0, 'duration_minutes': 15};
   }
 
   @override

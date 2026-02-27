@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme/app_colors.dart';
-import '../controllers/admin_controller.dart';
 import '../models/admin_models.dart';
 import '../providers/admin_providers.dart';
 

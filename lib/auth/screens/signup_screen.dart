@@ -82,11 +82,14 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
       if (next is AuthError) {
         _showSnackBar(next.message, isError: true);
       } else if (next is AuthEmailConfirmationPending) {
-        // Show confirmation pending screen / snack-bar
+        // Navigate to login and show confirmation message there.
         _showSnackBar(
-          'Account created! Please check ${next.email} to confirm your account.',
+          'Account created! Check ${next.email} to confirm, then log in.',
           isError: false,
         );
+        Future.delayed(const Duration(milliseconds: 400), () {
+          if (mounted) context.pop(); // go back to login screen
+        });
       }
     });
 

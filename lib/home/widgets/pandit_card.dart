@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../models/home_models.dart';
 
-/// Card used in the "Featured Pandits" horizontal list.
+/// Premium pandit card used in the home screen horizontal list.
 class PanditCard extends StatelessWidget {
   const PanditCard({
     super.key,
@@ -16,52 +17,76 @@ class PanditCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 160,
-        margin: const EdgeInsets.only(right: 0),
+        width: 162,
         decoration: BoxDecoration(
-          color: theme.colorScheme.surface,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.border),
+          color: AppColors.cardBackground,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+              color: AppColors.border.withValues(alpha: 0.7), width: 1),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
+              color: Colors.black.withValues(alpha: 0.06),
+              blurRadius: 14,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
         child: Padding(
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.fromLTRB(14, 16, 14, 12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // Avatar + online badge
+              // ── Avatar ──────────────────────────────────────────────────
               Stack(
+                clipBehavior: Clip.none,
                 children: [
-                  CircleAvatar(
-                    radius: 28,
-                    backgroundColor: pandit.avatarColor ?? AppColors.primary,
-                    child: Text(
-                      pandit.avatarInitials ?? pandit.name[0],
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
+                  Container(
+                    width: 58,
+                    height: 58,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(
+                        colors: [
+                          (pandit.avatarColor ?? AppColors.primary)
+                              .withValues(alpha: 0.9),
+                          (pandit.avatarColor ?? AppColors.primary),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: (pandit.avatarColor ?? AppColors.primary)
+                              .withValues(alpha: 0.35),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Center(
+                      child: Text(
+                        pandit.avatarInitials ?? pandit.name[0],
+                        style: GoogleFonts.inter(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 19,
+                        ),
                       ),
                     ),
                   ),
                   Positioned(
-                    right: 0,
-                    bottom: 0,
+                    right: 1,
+                    bottom: 1,
                     child: Container(
                       width: 14,
                       height: 14,
                       decoration: BoxDecoration(
-                        color: pandit.isOnline ? AppColors.success : AppColors.textHint,
+                        color: pandit.isOnline
+                            ? AppColors.success
+                            : AppColors.textHint,
                         shape: BoxShape.circle,
                         border: Border.all(color: Colors.white, width: 2),
                       ),
@@ -69,35 +94,37 @@ class PanditCard extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 11),
 
-              // Name
+              // ── Name ────────────────────────────────────────────────────
               Text(
                 pandit.name,
                 textAlign: TextAlign.center,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  fontWeight: FontWeight.bold,
+                style: GoogleFonts.inter(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
                   color: AppColors.textPrimary,
                   height: 1.3,
                 ),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 3),
 
-              // Speciality
+              // ── Speciality ──────────────────────────────────────────────
               Text(
                 pandit.speciality,
                 textAlign: TextAlign.center,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.labelSmall?.copyWith(
+                style: GoogleFonts.inter(
+                  fontSize: 11,
                   color: AppColors.textSecondary,
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 9),
 
-              // Rating row
+              // ── Rating row ──────────────────────────────────────────────
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -106,58 +133,65 @@ class PanditCard extends StatelessWidget {
                   const SizedBox(width: 3),
                   Text(
                     pandit.rating.toStringAsFixed(1),
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
                       color: AppColors.textPrimary,
                     ),
                   ),
                   const SizedBox(width: 3),
                   Text(
                     '(${pandit.reviewCount})',
-                    style: theme.textTheme.labelSmall?.copyWith(
+                    style: GoogleFonts.inter(
+                      fontSize: 11,
                       color: AppColors.textSecondary,
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 5),
 
-              // Experience badge
+              // ── Experience badge ─────────────────────────────────────────
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(20),
+                  color: AppColors.primary.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(22),
                 ),
                 child: Text(
-                  '${pandit.experience}y exp.',
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: AppColors.primary,
+                  '${pandit.experience} yrs exp',
+                  style: GoogleFonts.inter(
+                    fontSize: 10.5,
                     fontWeight: FontWeight.w600,
+                    color: AppColors.primary,
                   ),
                 ),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
 
-              // Book button
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton(
-                  onPressed: onTap,
-                  style: OutlinedButton.styleFrom(
-                    padding: EdgeInsets.zero,
-                    minimumSize: const Size(0, 30),
-                    side: BorderSide(color: AppColors.primary),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+              // ── Book button ──────────────────────────────────────────────
+              GestureDetector(
+                onTap: onTap,
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 9),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [AppColors.primary, AppColors.gold],
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
                     ),
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Text(
-                    'Book',
-                    style: TextStyle(
-                      color: AppColors.primary,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
+                  child: Center(
+                    child: Text(
+                      'Book Now',
+                      style: GoogleFonts.inter(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
                 ),

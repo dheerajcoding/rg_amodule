@@ -156,7 +156,8 @@ class _DetailView extends StatelessWidget {
                 const SizedBox(height: 20),
 
                 // Pandit info
-                if (package.panditName != null) ...[
+                if (package.panditName != null &&
+                    package.panditName!.isNotEmpty) ...[
                   _SectionHeader('Performed by'),
                   const SizedBox(height: 8),
                   Row(

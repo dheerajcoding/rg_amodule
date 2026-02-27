@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/constants/app_strings.dart';
+import '../../core/constants/demo_config.dart';
 import '../../core/router/app_router.dart';
 import '../../core/theme/app_colors.dart';
 import '../models/auth_state.dart';
@@ -64,6 +65,44 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ));
+  }
+
+  /// Quick-login chips for the 3 demo accounts.
+  List<Widget> _buildDemoChips(bool isLoading) {
+    return [
+      Text(
+        'Quick Demo Login',
+        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+              color: AppColors.textSecondary,
+              fontWeight: FontWeight.w600,
+            ),
+      ),
+      const SizedBox(height: 10),
+      Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: DemoConfig.demoAccounts.map((acct) {
+          return ActionChip(
+            avatar: Text(acct.icon, style: const TextStyle(fontSize: 16)),
+            label: Text(acct.label),
+            labelStyle: const TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: 13,
+            ),
+            backgroundColor: AppColors.primary.withValues(alpha: 0.08),
+            side: BorderSide(color: AppColors.primary.withValues(alpha: 0.3)),
+            onPressed: isLoading
+                ? null
+                : () {
+                    _emailController.text = acct.email;
+                    _passwordController.text = acct.password;
+                    _submit();
+                  },
+          );
+        }).toList(),
+      ),
+      const SizedBox(height: 16),
+    ];
   }
 
   // ── Build ──────────────────────────────────────────────────────────────────
@@ -203,6 +242,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     label: const Text(AppStrings.continueAsGuest),
                   ),
                   const SizedBox(height: 32),
+
+                  // ── Demo quick-login chips ─────────────────────────────
+                  if (DemoConfig.demoMode) ..._buildDemoChips(isLoading),
 
                   // ── Divider ────────────────────────────────────────────
                   Row(children: [

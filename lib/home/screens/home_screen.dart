@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../auth/providers/auth_provider.dart';
 import '../../core/theme/app_colors.dart';
+import '../../packages/providers/packages_provider.dart';
+import '../../packages/widgets/package_list_card.dart';
+import '../../widgets/loading_shimmer.dart';
 import '../models/home_mock_data.dart';
 import '../models/home_models.dart';
 import '../widgets/category_grid.dart';
 import '../widgets/hero_slider.dart';
-import '../widgets/package_card.dart';
 import '../widgets/pandit_card.dart';
 
 // ── Online / Offline filter state ─────────────────────────────────────────────
@@ -140,18 +143,58 @@ class HomeScreen extends ConsumerWidget {
             ),
           ),
 
-          // 5. Packages as sliver list (pagination-ready)
-          SliverList.builder(
-            itemCount: kMockPackages.length,
-            itemBuilder: (_, i) => PackageCard(
-              package: kMockPackages[i],
-              onTap: () => context.push('/booking'),
-            ),
-          ),
+          // 5. Packages as sliver list (Supabase-driven featured packages)
+          _FeaturedPackagesSliver(),
 
           const SliverToBoxAdapter(child: SizedBox(height: 32)),
         ],
       ),
+    );
+  }
+}
+
+// ── Featured Packages (Supabase-driven) ───────────────────────────────────────
+
+class _FeaturedPackagesSliver extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final async = ref.watch(featuredPackagesProvider);
+
+    return async.when(
+      loading: () => const SliverToBoxAdapter(child: ListShimmer(itemCount: 3)),
+      error: (_, __) => SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Center(
+            child: Text(
+              'Unable to load packages. Check your connection.',
+              style: TextStyle(color: AppColors.textSecondary),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      ),
+      data: (packages) {
+        if (packages.isEmpty) {
+          // Graceful fallback to mock data while DB is empty
+          return SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              child: Text(
+                'No featured packages yet.',
+                style: TextStyle(color: AppColors.textSecondary),
+              ),
+            ),
+          );
+        }
+        return SliverList.builder(
+          itemCount: packages.length,
+          itemBuilder: (_, i) => PackageListCard(
+            package: packages[i],
+            onTap: () => context.push('/booking/wizard'),
+          ),
+        );
+      },
     );
   }
 }
@@ -178,6 +221,16 @@ class _HomeAppBar extends StatelessWidget {
       titleSpacing: 16,
       title: Row(
         children: [
+          Container(
+            width: 36,
+            height: 36,
+            margin: const EdgeInsets.only(right: 10),
+            decoration: BoxDecoration(
+              gradient: AppColors.primaryGradient,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(Icons.auto_awesome, color: Colors.white, size: 18),
+          ),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -185,17 +238,17 @@ class _HomeAppBar extends StatelessWidget {
               children: [
                 Text(
                   '$_greeting,',
-                  style: const TextStyle(
-                    fontSize: 12,
+                  style: GoogleFonts.inter(
+                    fontSize: 11,
                     color: AppColors.textSecondary,
                     fontWeight: FontWeight.w400,
                   ),
                 ),
                 Text(
                   userName,
-                  style: const TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.bold,
+                  style: GoogleFonts.playfairDisplay(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
                     color: AppColors.textPrimary,
                   ),
                 ),
@@ -206,26 +259,26 @@ class _HomeAppBar extends StatelessWidget {
             icon: const Icon(Icons.search_rounded, color: AppColors.textPrimary),
             onPressed: () {},
           ),
-          IconButton(
-            icon: Stack(
-              children: [
-                const Icon(Icons.notifications_outlined,
+          Stack(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.notifications_outlined,
                     color: AppColors.textPrimary),
-                Positioned(
-                  right: 0,
-                  top: 0,
-                  child: Container(
-                    width: 8,
-                    height: 8,
-                    decoration: const BoxDecoration(
-                      color: AppColors.error,
-                      shape: BoxShape.circle,
-                    ),
+                onPressed: () {},
+              ),
+              Positioned(
+                right: 8,
+                top: 8,
+                child: Container(
+                  width: 8,
+                  height: 8,
+                  decoration: const BoxDecoration(
+                    color: AppColors.error,
+                    shape: BoxShape.circle,
                   ),
                 ),
-              ],
-            ),
-            onPressed: () {},
+              ),
+            ],
           ),
         ],
       ),
@@ -250,10 +303,11 @@ class _SectionHeader extends StatelessWidget {
       padding: padding ?? const EdgeInsets.symmetric(horizontal: 16),
       child: Text(
         title,
-        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
-            ),
+        style: GoogleFonts.playfairDisplay(
+          fontSize: 19,
+          fontWeight: FontWeight.w700,
+          color: AppColors.textPrimary,
+        ),
       ),
     );
   }
